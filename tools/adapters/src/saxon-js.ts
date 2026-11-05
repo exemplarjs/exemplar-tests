@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module';
-import type SaxonJS from 'saxon-js';
 import {
   type Adapter,
   type CanonicalForm,
@@ -11,29 +9,18 @@ import {
   unsupported,
 } from './adapter.ts';
 import { CanonicalWriter } from './canonical.ts';
-import { decode, declaredVersion, installedVersion } from './decode.ts';
+import { decode, declaredVersion } from './decode.ts';
 import { type DomNode, writeDomTree } from './dom-tree.ts';
-
-let processor: typeof SaxonJS | undefined;
-
-/** Saxon-JS, loaded on first use; it raises `Error.stackTraceLimit` as it loads, which is put back for the other libraries. */
-function saxonJs(): typeof SaxonJS {
-  if (processor === undefined) {
-    const limit = Error.stackTraceLimit;
-    try {
-      processor = createRequire(import.meta.url)('saxon-js') as typeof SaxonJS;
-    } finally {
-      Error.stackTraceLimit = limit;
-    }
-  }
-  return processor;
-}
+import { type SaxonJsPackage, loadSaxonJs } from './saxon-js-loader.ts';
+import { saxonJs2XPathAdapter, saxonJs3XPathAdapter } from './saxon-js-xpath.ts';
+import type { XPathAdapter } from './xpath-adapter.ts';
+import { withXPath } from './xpath-workload.ts';
 
 /** Parses a document with Saxon-JS's own parser, which reads no DTD. */
-async function canonical(source: Source, form: CanonicalForm): Promise<Outcome> {
+async function canonical(packageName: SaxonJsPackage, source: Source, form: CanonicalForm): Promise<Outcome> {
   const writer = new CanonicalWriter(form);
   try {
-    const document = (await saxonJs().getResource({
+    const document = (await loadSaxonJs(packageName).getResource({
       text: decode(source.bytes, source.encoding),
       type: 'xml',
     })) as DomNode;
@@ -47,16 +34,26 @@ async function canonical(source: Source, form: CanonicalForm): Promise<Outcome> 
   }
 }
 
-/** Saxon-JS, Saxonica's XSLT and XPath processor, building its tree with its own parser. */
-export const saxonJsAdapter: Adapter = {
-  name: 'saxon-js',
-  version: installedVersion('saxon-js'),
-  configurations: ['standalone'],
-  workloads: ['tree'],
-  canonical: (source, _configuration, form) => canonical(source, form),
-  build: (input: Input) => saxonJs().getResource({ text: input.text, type: 'xml' }),
-  async run(workload: Workload, input: Input) {
-    if (workload !== 'tree') throw unsupported('saxon-js', workload);
-    return (await saxonJs().getResource({ text: input.text, type: 'xml' })) === null ? 0 : 1;
-  },
-};
+/** A Saxon-JS version, Saxonica's XSLT and XPath processor, building its tree with its own parser. */
+function saxonJsAdapterFor(packageName: SaxonJsPackage, xpath: XPathAdapter): Adapter {
+  const parse = (text: string) => loadSaxonJs(packageName).getResource({ text, type: 'xml' });
+  const adapter: Adapter = {
+    name: xpath.name,
+    version: xpath.version,
+    configurations: ['standalone'],
+    // Its tree is the XDM tree its XPath and XSLT run on, so it builds the same for both.
+    workloads: ['tree', 'xdm'],
+    canonical: (source, _configuration, form) => canonical(packageName, source, form),
+    build: (input: Input) => parse(input.text),
+    async run(workload: Workload, input: Input) {
+      if (workload !== 'tree' && workload !== 'xdm') throw unsupported(xpath.name, workload);
+      return (await parse(input.text)) === null ? 0 : 1;
+    },
+  };
+  return withXPath(adapter, xpath);
+}
+
+/** Saxon-JS 2, the `saxon-js` package. */
+export const saxonJs2Adapter = saxonJsAdapterFor('saxon-js', saxonJs2XPathAdapter);
+/** Saxon-JS 3, the `saxonjs-he` package. */
+export const saxonJs3Adapter = saxonJsAdapterFor('saxonjs-he', saxonJs3XPathAdapter);

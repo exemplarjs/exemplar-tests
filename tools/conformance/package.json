@@ -11,10 +11,12 @@
     "clean:output": "rimraf .turbo .vitest coverage reports",
     "typecheck": "tsc --noEmit",
     "conformance": "vitest run --passWithNoTests",
+    "qt3": "node src/qt3/cli.ts",
     "differential": "node src/differential.ts",
     "lint": "oxlint",
     "fuzz": "node src/fuzz.ts",
-    "conformance:browser": "vitest run --config vitest.browser.config.ts"
+    "conformance:browser": "vitest run --config vitest.browser.config.ts",
+    "qt3:parse": "node src/qt3/parse-check.ts"
   },
   "dependencies": {
     "@exemplarjs/adapters": "workspace:*",
@@ -25,6 +27,7 @@
     "@exemplarjs/validation": "catalog:",
     "@exemplarjs/xinclude": "catalog:",
     "@exemplarjs/xml": "catalog:",
+    "@exemplarjs/xpath": "catalog:",
     "stax-xml": "catalog:"
   },
   "devDependencies": {

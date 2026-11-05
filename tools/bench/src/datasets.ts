@@ -60,7 +60,7 @@ interface DatasetSpec {
   readonly documents?: string;
   /** How its documents are read: `external` reads the DTDs and entities they refer to, below the dataset's folder. */
   readonly configuration?: Configuration;
-  /** The workloads run on it; all but `dtd` by default. */
+  /** The workloads run on it; all but `dtd` and `compile` by default. */
   readonly workloads?: readonly Workload[];
   readonly sources: readonly Source[];
 }

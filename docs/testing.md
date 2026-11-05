@@ -23,25 +23,28 @@ The runner lives in `tools/conformance` and the adapters it drives in `tools/ada
 
 ## Layers
 
-| Layer        | Tool                                                        | Runs                                                         | Proves                                                                         |
-| ------------ | ----------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Conformance  | vitest, in `tools/conformance`                              | Every change                                                 | The W3C suites, under every configuration                                      |
-| Consistency  | Part of the conformance run                                 | Every change                                                 | The same results at every chunk size, through every API, for bytes and strings |
-| Fuzz         | vitest with fast-check; a command line against libxml2      | Briefly on every change, at length nightly                   | No crash or hang on any mutated suite document; agreement with libxml2         |
-| Differential | Script                                                      | Nightly                                                      | Agreement with libxml2 and Xerces                                              |
-| Runtimes     | vitest browser mode; a command-line runner for Deno and Bun | Browsers on every change; Deno and Bun nightly               | The same results everywhere                                                    |
-| Performance  | `tools/bench` ([benchmarking.md](benchmarking.md))          | Each change against `main`, locally; the full matrix nightly | No regressions; comparisons with other libraries                               |
+| Layer             | Tool                                                        | Runs                                                         | Proves                                                                         |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Conformance       | vitest, in `tools/conformance`                              | Every change                                                 | The W3C suites, under every configuration                                      |
+| XPath conformance | `pnpm qt3`, in `tools/conformance`                          | Every change                                                 | QT3, the XPath and XQuery suite, against the XPath processors                  |
+| Consistency       | Part of the conformance run                                 | Every change                                                 | The same results at every chunk size, through every API, for bytes and strings |
+| Fuzz              | vitest with fast-check; a command line against libxml2      | Briefly on every change, at length nightly                   | No crash or hang on any mutated suite document; agreement with libxml2         |
+| Differential      | Script                                                      | Nightly                                                      | Agreement with libxml2 and Xerces                                              |
+| Runtimes          | vitest browser mode; a command-line runner for Deno and Bun | Browsers on every change; Deno and Bun nightly               | The same results everywhere                                                    |
+| Performance       | `tools/bench` ([benchmarking.md](benchmarking.md))          | Each change against `main`, locally; the full matrix nightly | No regressions; comparisons with other libraries                               |
 
 The commands run from the repository root:
 
-| Command                    | Runs                                                                             |
-| -------------------------- | -------------------------------------------------------------------------------- |
-| `pnpm conformance`         | The conformance, consistency and short fuzz tests; cached until an input changes |
-| `pnpm conformance:browser` | The XML suite in Chromium, Firefox and WebKit                                    |
-| `pnpm differential`        | The differential tests against libxml2, Xerces and `javax.xml.catalog`           |
-| `pnpm fuzz`                | Mutated suite documents against libxml2                                          |
-| `pnpm typecheck`           | The type check of every package                                                  |
-| `pnpm bench`               | The benchmarks; never cached                                                     |
+| Command                    | Runs                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| `pnpm conformance`         | The conformance, consistency and short fuzz tests; cached until an input changes    |
+| `pnpm conformance:browser` | The XML suite in Chromium, Firefox and WebKit                                       |
+| `pnpm qt3`                 | The W3C XPath and XQuery suite, as an XPath 3.1 suite, against the XPath processors |
+| `pnpm qt3:parse`           | Every XPath 3.1 expression in QT3, through exemplar's parser                        |
+| `pnpm differential`        | The differential tests against libxml2, Xerces and `javax.xml.catalog`              |
+| `pnpm fuzz`                | Mutated suite documents against libxml2                                             |
+| `pnpm typecheck`           | The type check of every package                                                     |
+| `pnpm bench`               | The benchmarks; never cached                                                        |
 
 ## W3C conformance
 
@@ -153,7 +156,7 @@ Expected failures are keyed `dom/<level>/core/<test>`. They are of three kinds:
 
 ### Reports
 
-The conformance command line, `tools/conformance/src/cli.ts`, writes `tools/conformance/reports/conformance.md` and `conformance.json`. They give pass, fail, expected-failure and not-applicable counts for each suite, configuration and test type. These are the numbers exemplar publishes.
+The conformance command line, `tools/conformance/src/cli.ts`, scores each library in a process of its own, `src/score.ts`, and writes `tools/conformance/reports/conformance.md` and `conformance.json`. A single library, as in the Deno and Bun runs, is scored in the command line's own process. They give pass, fail, expected-failure and not-applicable counts for each suite, configuration and test type. These are the numbers exemplar publishes.
 
 **Other libraries.** The runner also scores every other library that has an adapter, under the configurations each one supports. That gives the conformance columns of the [benchmark report](benchmarking.md#published-numbers). The expected-failure list applies to exemplar only.
 
@@ -202,6 +205,32 @@ Processors plug in through the adapters in `tools/adapters`, so the runner is pr
 - vitest 5 takes `passWithNoTests` only at the root, so the conformance runner passes it on the command line.
 - Vite's module runner does not support `import.meta.resolve`, which the adapters use, so the browser configuration loads them outside Vite.
 - Deno cannot load libxmljs2's native module, so its adapter loads it on first use.
+
+## XPath conformance (QT3)
+
+QT3 is the W3C test suite for XPath and XQuery: about 32,000 test cases in 428 test sets, each an expression, the environment it runs in and assertions about its result. `pnpm qt3` runs it as an XPath 3.1 suite against the XPath processors, `saxon-js-2`, `saxon-js-3` and `exemplar` by default, or those it names. `--test-sets fn-abs,op-to` limits it to some test sets, and `--scope core` to the core language and functions: the expression productions, and the functions and operators on numbers, strings, booleans, sequences, nodes and QNames, leaving out dates and durations, regular expressions, formatting, collations, higher-order functions, maps, arrays, JSON and the documents functions. exemplar's processor claims only what it supports so far, so tests that need function items are not applicable to it.
+
+**Fetching.** `suites.json` pins GitHub's archive of `w3c/qt3tests` at one commit, by SHA-256. It is downloaded and unpacked into `data/conformance/qt3/` when the runner first needs it, which is git-ignored; the conformance tests' global setup leaves it alone, as it is marked `onDemand`.
+
+**Which tests apply.** A test applies unless one of its dependencies, or its test set's, rules it out:
+
+- `spec`: it must name XPath 3.1, as `XP31`, or an earlier version with `+`; XQuery-only tests do not apply;
+- every other dependency, such as `feature higherOrderFunctions`, `language en` or `xsd-version 1.1`, is checked against the capabilities the processor's adapter declares; `satisfied="false"` reverses the check, and every `unicode-version` is met;
+- a test whose documents must be schema-validated does not apply, as no processor here is schema-aware.
+
+**Environments.** A test's environment gives its context item and documents bound to variables, parsed by the processor, its statically known namespaces and its static base URI, which is otherwise the test set file's. Parameters become `let` bindings around the expression. Tests whose environment declares decimal formats, collations, collections, resources or schemas are not run, and neither are tests that read a source document by its URI, since the adapters cannot be given these.
+
+**Judging.** The processor evaluates the expression; the runner then judges its assertions as the QT3 drivers do, by evaluating further expressions in the same processor, with `$result` bound by evaluating the test again: `assert-eq` compares one item with `eq`, which atomizes a node to its typed value, NaN equal to NaN; `assert-deep-eq` uses `deep-equal`; `assert-permutation`, `assert-count`, `assert-type`, `assert-empty`, `assert-true`, `assert-false` and `assert` likewise. `assert-string-value` compares the items' strings, joined by spaces, in the runner; `assert-xml` compares the serialized result with the expected XML as trees: names by namespace and local name, and prefix unless `ignore-prefixes`, attributes in any order, namespace declarations left out. `any-of`, `all-of` and `not` combine these. An expected error passes when its code matches, or the test accepts any; an error with another code counts as a wrong error. The serialization assertions are not judged.
+
+**Expected failures.** exemplar's QT3 tests listed in `expected-failures.json`, as `qt3/<test>`, count as expected failures, explained in `exceptions.md`; the run fails if one of them passes, does not run or apply, or, in a run of the whole suite, is not in it. Tests of what exemplar has not built yet are ordinary failures until it has.
+
+**Isolation.** Tests run in a worker thread with a 2 GB heap. A test that runs out of memory, or runs longer than 20 seconds, fails, and a fresh worker goes on from the next test.
+
+CI runs it on every change, with the suite cached between runs, and keeps the reports as an artifact.
+
+**Reports.** `reports/qt3.md` has each processor's pass rate over the tests judged, its counts, why tests were left out, and its counts per test set; `reports/qt3.json` also lists every failure with the error it raised. A run limited by `--scope` writes `reports/qt3-<scope>.md` and `.json` instead.
+
+**Parsing.** `pnpm qt3:parse` parses every XPath 3.1 test expression with exemplar's parser alone, and lists each one where it disagrees with the test: an expression it rejects although the test accepts a value or another error, or one it accepts although the test expects only `XPST0003`. Tests that need a feature changing what is expected, such as static typing, are left out; `--test-sets` limits it as for `pnpm qt3`, and `--all` lists every disagreement instead of the first 50.
 
 ## Consistency
 

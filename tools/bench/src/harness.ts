@@ -36,23 +36,30 @@ export interface Summary {
   readonly errors: number;
   /** Left out when the library threw on every document, since the time then measures nothing. */
   readonly nsPerEvent?: number;
-  /** For `tree`: the least memory the dataset's trees held in any round, in MB. */
+  /** For `tree` and `xdm`: the least memory the dataset's trees held in any round, in MB. */
   readonly retainedMB?: number;
   /** Speed on the documents the library reads correctly; left out when output was not checked. */
   readonly fair?: Fair;
+  /** For `compile`: how many expressions one pass compiled. */
+  readonly compiled?: number;
+  /** For `axes`: each query's best time over the rounds, in ms. */
+  readonly queryMs?: readonly number[];
 }
-
-const WORKER = fileURLToPath(new URL('worker.ts', import.meta.url));
 
 /** Room for the largest datasets' trees, which the default heap limit does not hold. */
 const HEAP_LIMIT = '--max-old-space-size=16384';
 
-/** Runs one round in a fresh process, so no library's compiled code or heap affects another's. */
-function round(name: string, workload: Workload, dataset: string): Promise<Measurement> {
+/** Runs a script of this package in a fresh process, with any input on its stdin, and parses the JSON it prints. */
+export function runScript<T>(script: string, args: readonly string[], input?: string): Promise<T> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['--expose-gc', HEAP_LIMIT, WORKER, name, workload, dataset], {
-      stdio: ['ignore', 'pipe', 'inherit'],
-    });
+    const child = spawn(
+      process.execPath,
+      ['--expose-gc', HEAP_LIMIT, fileURLToPath(new URL(script, import.meta.url)), ...args],
+      {
+        stdio: ['pipe', 'pipe', 'inherit'],
+      }
+    );
+    child.stdin.end(input);
     let stdout = '';
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', (chunk: string) => {
@@ -60,10 +67,15 @@ function round(name: string, workload: Workload, dataset: string): Promise<Measu
     });
     child.on('error', reject);
     child.on('close', (code) => {
-      if (code === 0) resolve(JSON.parse(stdout) as Measurement);
-      else reject(new Error(`${name} ${workload} ${dataset} exited with ${code}`));
+      if (code === 0) resolve(JSON.parse(stdout) as T);
+      else reject(new Error(`${script} ${args.join(' ')} exited with ${code}`));
     });
   });
+}
+
+/** Runs one round in a fresh process, so no library's compiled code or heap affects another's. */
+function round(name: string, workload: Workload, dataset: string): Promise<Measurement> {
+  return runScript('worker.ts', [name, workload, dataset]);
 }
 
 /** Counts each markup start and each non-blank text run in a document. */
@@ -122,8 +134,8 @@ function thrown(rounds: readonly Measurement[]): Set<number> {
   return failed;
 }
 
-/** The workloads whose timed counts follow the rule in the adapters' `content.ts`, and so must equal exemplar's. */
-const COUNTED: ReadonlySet<Workload> = new Set(['read', 'small', 'stream', 'dtd']);
+/** The workloads whose timed counts must equal exemplar's: those that follow the rule in the adapters' `content.ts`, `xpath`'s item counts and the sum of `axes`'s results. */
+const COUNTED: ReadonlySet<Workload> = new Set(['read', 'small', 'stream', 'dtd', 'xpath', 'axes']);
 
 /** The documents, by index, whose count in the first round differs from the reference's, where counts are checked. */
 function miscounted(workload: Workload, own: readonly Measurement[], reference: readonly Measurement[]): Set<number> {
@@ -176,6 +188,12 @@ function fairly(
   };
 }
 
+/** Each query's best time over the rounds that timed queries. */
+function bestByQuery(rounds: readonly Measurement[]): number[] {
+  const timed = rounds.flatMap((measurement) => (measurement.queryMs === undefined ? [] : [measurement.queryMs]));
+  return (timed[0] ?? []).map((_, index) => Math.min(...timed.map((times) => times[index] ?? Infinity)));
+}
+
 /** Runs every library's round 1, then every library's round 2, and so on, and summarizes each library. */
 export async function measure(
   libraries: readonly string[],
@@ -202,7 +220,7 @@ export async function measure(
       version: library(name).version,
       workload,
       dataset: dataset.name,
-      rounds: list.map(({ perDocument: _times, ...measurement }) => measurement),
+      rounds: list.map(({ perDocument: _times, queryMs: _queries, ...measurement }) => measurement),
       bestMs,
       medianMs: median(times),
       noise: (Math.max(...times) - bestMs) / bestMs,
@@ -211,6 +229,10 @@ export async function measure(
       ...(parsed && events !== undefined && events > 0 && { nsPerEvent: (bestMs * 1e6) / events }),
       ...(parsed && retained.length > 0 && { retainedMB: Math.min(...retained) / 1e6 }),
       ...(fair && { fair }),
+      // For `compile`, each document's count is the expressions it compiled.
+      ...(workload === 'compile' &&
+        parsed && { compiled: (list[0]?.perDocument?.counts ?? []).reduce((sum, n) => sum + n, 0) }),
+      ...(list.some((measurement) => measurement.queryMs !== undefined) && { queryMs: bestByQuery(list) }),
     };
   });
 }

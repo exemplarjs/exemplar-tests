@@ -14,6 +14,8 @@
     "test": "turbo run test",
     "conformance": "turbo run conformance",
     "conformance:browser": "pnpm --filter @exemplarjs/conformance conformance:browser",
+    "qt3": "pnpm --filter @exemplarjs/conformance qt3",
+    "qt3:parse": "pnpm --filter @exemplarjs/conformance qt3:parse",
     "differential": "pnpm --filter @exemplarjs/conformance differential",
     "fuzz": "pnpm --filter @exemplarjs/conformance fuzz",
     "bench": "turbo run bench",

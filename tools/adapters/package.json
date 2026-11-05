@@ -24,7 +24,9 @@
     "@exemplarjs/sax": "catalog:",
     "@exemplarjs/validation": "catalog:",
     "@exemplarjs/writer": "catalog:",
+    "@exemplarjs/xdm": "catalog:",
     "@exemplarjs/xml": "catalog:",
+    "@exemplarjs/xpath": "catalog:",
     "@xmldom/xmldom": "catalog:",
     "fast-xml-parser": "catalog:",
     "htmlparser2": "catalog:",
@@ -33,6 +35,7 @@
     "saxen": "catalog:",
     "saxes": "catalog:",
     "saxon-js": "catalog:",
+    "saxonjs-he": "catalog:",
     "stax-xml": "catalog:",
     "txml": "catalog:"
   },

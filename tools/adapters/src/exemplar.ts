@@ -7,6 +7,7 @@ import { cjkDecoders } from '@exemplarjs/encodings-cjk';
 import { type Attributes, type Locator, SAXParser, type SAXHandler } from '@exemplarjs/sax';
 import { dtdValidator } from '@exemplarjs/validation';
 import { StringSink, XMLOutputFactory } from '@exemplarjs/writer';
+import { XdmDocumentBuilder } from '@exemplarjs/xdm';
 import {
   type AsyncStreamReader,
   EventType,
@@ -33,6 +34,8 @@ import { CanonicalWriter } from './canonical.ts';
 import { instructionLength } from './content.ts';
 import { decode, detectedEncoding, installedVersion } from './decode.ts';
 import { writeDomTree } from './dom-tree.ts';
+import { exemplarXPathAdapter } from './exemplar-xpath.ts';
+import { withXPath } from './xpath-workload.ts';
 
 /** Recoverable errors and warnings are counted, not thrown, so they do not reject a well-formed document. */
 const quiet = { error: () => undefined, warning: () => undefined };
@@ -40,6 +43,7 @@ const awareFactory = new XMLInputFactory({ namespacePrefixes: true, errorHandler
 const unawareFactory = new XMLInputFactory({ namespaceAware: false, errorHandler: quiet, decoders: cjkDecoders });
 const readFactory = new XMLInputFactory({ errorHandler: quiet, decoders: cjkDecoders });
 const treeBuilder = new DocumentBuilder(readFactory);
+const xdmBuilder = new XdmDocumentBuilder(readFactory);
 const writeFactory = new XMLOutputFactory();
 
 /** Factories that read external DTDs and entities below a root, by configuration, root and namespace awareness. */
@@ -393,15 +397,23 @@ function* fileChunks(path: string): Generator<Uint8Array> {
 export interface TimedFactories {
   readonly read: XMLInputFactory;
   readonly tree: DocumentBuilder;
+  /** Builds XDM trees; a build from before the xdm package has none. */
+  readonly xdm?: XdmDocumentBuilder;
   readonly write: XMLOutputFactory;
   readonly sink: () => StringSink;
   /** Makes a factory that reads DTDs and entities below a folder; a build without a file resolver has none. */
   readonly dtd?: (root: string) => XMLInputFactory;
 }
 
+/** A part of a build that a workload needs; a build without it does not have the workload. */
+function required<T>(part: T | undefined, workload: Workload): T {
+  if (part === undefined) throw unsupported('exemplar', workload);
+  return part;
+}
+
 /** The timed workloads, over one build's factories. */
 export function timedWorkloads(factories: TimedFactories): Pick<Adapter, 'build' | 'prepare' | 'run'> {
-  const { read, tree, write, sink, dtd } = factories;
+  const { read, tree, xdm, write, sink, dtd } = factories;
   // One factory for each folder the `dtd` workload reads documents from.
   const dtdFactories = new Map<string, XMLInputFactory>();
   const dtdFactoryFor = (root: string): XMLInputFactory => {
@@ -414,13 +426,14 @@ export function timedWorkloads(factories: TimedFactories): Pick<Adapter, 'build'
     return factory;
   };
   return {
-    build: (input: Input) => tree.parse(input.text),
-    prepare(workload: Workload, input: Input) {
-      return workload === 'write' ? [...read.createEventReader(input.text)] : undefined;
-    },
+    build: (input: Input, workload: Workload) =>
+      workload === 'xdm' ? required(xdm, 'xdm').parse(input.text) : tree.parse(input.text),
+    prepare: (workload: Workload, input: Input) =>
+      workload === 'write' ? [...read.createEventReader(input.text)] : undefined,
     run(workload: Workload, input: Input, prepared?: unknown) {
       if (workload === 'write') return writeEvents(prepared as readonly XMLEvent[], write, sink());
       if (workload === 'tree') return tree.parse(input.text).documentElement === null ? 0 : 1;
+      if (workload === 'xdm') return required(xdm, 'xdm').parse(input.text).tree.size;
       if (workload === 'stream') return count(read.createStreamReader({ chunks: fileChunks(input.path) }), true);
       if (workload === 'dtd') {
         const source = { text: input.text, systemId: pathToFileURL(input.path).href };
@@ -432,18 +445,22 @@ export function timedWorkloads(factories: TimedFactories): Pick<Adapter, 'build'
   };
 }
 
-/** exemplar, through its cursor. */
-export const exemplarAdapter: Adapter = {
-  name: 'exemplar',
-  version: installedVersion('@exemplarjs/xml'),
-  configurations: ['standalone', 'external', 'validating'],
-  workloads: ['walk', 'read', 'tree', 'small', 'stream', 'write', 'dtd'],
-  canonical: (source, configuration, form, options) => canonical(source, configuration, form, options),
-  ...timedWorkloads({
-    read: readFactory,
-    tree: treeBuilder,
-    write: writeFactory,
-    sink: () => new StringSink(),
-    dtd: dtdFactory,
-  }),
-};
+/** exemplar, through its cursor, with XPath through its own processor. */
+export const exemplarAdapter: Adapter = withXPath(
+  {
+    name: 'exemplar',
+    version: installedVersion('@exemplarjs/xml'),
+    configurations: ['standalone', 'external', 'validating'],
+    workloads: ['walk', 'read', 'tree', 'xdm', 'small', 'stream', 'write', 'dtd'],
+    canonical: (source, configuration, form, options) => canonical(source, configuration, form, options),
+    ...timedWorkloads({
+      read: readFactory,
+      tree: treeBuilder,
+      xdm: xdmBuilder,
+      write: writeFactory,
+      sink: () => new StringSink(),
+      dtd: dtdFactory,
+    }),
+  },
+  exemplarXPathAdapter
+);

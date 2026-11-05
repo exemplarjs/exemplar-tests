@@ -13,7 +13,8 @@ export interface XmlIdResult {
 export function readIds(test: XmlIdTest): XmlIdResult {
   const errors: string[] = [];
   const factory = new XMLInputFactory({
-    errorHandler: { error: (error) => errors.push(error.code), warning: () => {} },
+    // exemplar reports what an xml:id breaks as a warning; the suite asks only that it is reported.
+    errorHandler: { error: (error) => errors.push(error.code), warning: (warning) => errors.push(warning.code) },
   });
   const reader = factory.createStreamReader({
     bytes: readFileSync(test.path),

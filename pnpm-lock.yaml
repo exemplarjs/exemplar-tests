@@ -185,12 +185,18 @@ catalogs:
     '@exemplarjs/writer':
       specifier: link:../exemplar/packages/writer
       version: link:../exemplar/packages/writer
+    '@exemplarjs/xdm':
+      specifier: link:../exemplar/packages/xdm
+      version: link:../exemplar/packages/xdm
     '@exemplarjs/xinclude':
       specifier: link:../exemplar/packages/xinclude
       version: link:../exemplar/packages/xinclude
     '@exemplarjs/xml':
       specifier: link:../exemplar/packages/xml
       version: link:../exemplar/packages/xml
+    '@exemplarjs/xpath':
+      specifier: link:../exemplar/packages/xpath
+      version: link:../exemplar/packages/xpath
     '@fast-check/vitest':
       specifier: 0.5.0
       version: 0.5.0
@@ -251,6 +257,9 @@ catalogs:
     saxon-js:
       specifier: 2.7.0
       version: 2.7.0
+    saxonjs-he:
+      specifier: 3.0.0-beta2
+      version: 3.0.0-beta2
     stax-xml:
       specifier: 1.1.2
       version: 1.1.2
@@ -357,9 +366,15 @@ importers:
       '@exemplarjs/writer':
         specifier: 'catalog:'
         version: link:../../../exemplar/packages/writer
+      '@exemplarjs/xdm':
+        specifier: 'catalog:'
+        version: link:../../../exemplar/packages/xdm
       '@exemplarjs/xml':
         specifier: 'catalog:'
         version: link:../../../exemplar/packages/xml
+      '@exemplarjs/xpath':
+        specifier: 'catalog:'
+        version: link:../../../exemplar/packages/xpath
       '@xmldom/xmldom':
         specifier: 'catalog:'
         version: 0.9.12
@@ -384,6 +399,9 @@ importers:
       saxon-js:
         specifier: 'catalog:'
         version: 2.7.0(debug@4.4.3)
+      saxonjs-he:
+        specifier: 'catalog:'
+        version: 3.0.0-beta2
       stax-xml:
         specifier: 'catalog:'
         version: 1.1.2
@@ -446,6 +464,9 @@ importers:
       '@exemplarjs/xml':
         specifier: 'catalog:'
         version: link:../../../exemplar/packages/xml
+      '@exemplarjs/xpath':
+        specifier: 'catalog:'
+        version: link:../../../exemplar/packages/xpath
       stax-xml:
         specifier: 'catalog:'
         version: 1.1.2
@@ -2404,6 +2425,9 @@ packages:
 
   saxon-js@2.7.0:
     resolution: {integrity: sha512-uGAv7H85EuWtAyyXVezXBg3/j2UvhEfT3N9+sqkGwCJVW33KlkadllDCdES/asCDklUo0UlM6178tZ0n3GPZjQ==}
+
+  saxonjs-he@3.0.0-beta2:
+    resolution: {integrity: sha512-ZoxMP1BzQ6qGv9oJIDRFh87D1G1wOJysuHqW7PrxF+5MMvYxv2gApIdQ87mxpAQb42fmZlLnT4AvcIC7d+hgpQ==}
 
   scslre@0.3.0:
     resolution: {integrity: sha512-3A6sD0WYP7+QrjbfNA2FN3FsOaGGFoekCVgTyypy53gPxhbkCIjtO6YWgdrfM+n/8sI8JeXZOIxsHjMTNxQ4nQ==}
@@ -4551,6 +4575,8 @@ snapshots:
     transitivePeerDependencies:
       - debug
       - supports-color
+
+  saxonjs-he@3.0.0-beta2: {}
 
   scslre@0.3.0:
     dependencies:

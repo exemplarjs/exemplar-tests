@@ -57,6 +57,9 @@ const FIXED: Readonly<Record<string, boolean>> = { signed: true, hasNullString: 
 
 const quiet = { warning: () => {}, error: () => {} };
 
+/** What the suite expects `getAttribute` to give for a missing attribute: DOM Level 3's empty string. */
+const LEVEL3_MISSING_ATTRIBUTE = 'empty';
+
 /** The test builder DOMTestCase.js calls, which parses the suite's files with exemplar's DocumentBuilder. */
 class ExemplarTestBuilder {
   contentType = 'text/xml';
@@ -67,7 +70,7 @@ class ExemplarTestBuilder {
   readonly async = false;
   readonly #files: string;
   readonly #attributes: Record<string, boolean>;
-  readonly #implementation = new DOMImplementation();
+  readonly #implementation = new DOMImplementation({ missingAttribute: LEVEL3_MISSING_ATTRIBUTE });
 
   constructor(files: string, level3: boolean) {
     this.#files = files;
@@ -124,6 +127,7 @@ class ExemplarTestBuilder {
     const builder = new DocumentBuilder(factory, {
       ignoringComments: a['ignoringComments'] === true,
       ignoringElementContentWhitespace: a['ignoringElementContentWhitespace'] === true,
+      missingAttribute: LEVEL3_MISSING_ATTRIBUTE,
     });
     return builder.parse({ systemId: pathToFileURL(file).href, bytes: readFileSync(file) });
   }

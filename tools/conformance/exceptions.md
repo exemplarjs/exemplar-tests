@@ -1,6 +1,6 @@
 # Tests exemplar does not pass
 
-exemplar runs five collections of W3C tests, which [testing.md](../../docs/testing.md#w3c-conformance) describes. Two kinds of test do not pass:
+exemplar runs six collections of W3C tests, which [testing.md](../../docs/testing.md#w3c-conformance) describes. Two kinds of test do not pass:
 
 - An **expected failure** is a test exemplar runs and fails. Each is listed in [`expected-failures.json`](expected-failures.json) with a one-line reason. The run still fails if a listed test starts passing, or if any other test fails.
 - A test that is **not applicable** needs something exemplar does not have, such as XML Schema, or tests a rule that no longer holds. It is not run, and the reports count it in the "Not applicable" column.
@@ -15,6 +15,7 @@ This report explains every one of them in plain terms, with a short example, and
 | DOM Conformance Test Suite | 1,532                | 40                         | 87                                                                                                |
 | XInclude Test Suite        | 174                  | 2                          | 21                                                                                                |
 | `xml:id` Test Suite        | 13                   | none                       | 2                                                                                                 |
+| QT3, as XPath 3.1          | 31,821               | 8                          | those QT3's own dependencies leave out, counted in [`reports/qt3.md`](reports/qt3.md)             |
 | Canonical XML              | 6 examples, 21 cases | none                       | Example 3.7 of 1.0, 3.7 and 3.8 of 1.1, the Exclusive Canonicalization examples, and the 21 cases |
 
 ## Checking a test yourself
@@ -24,7 +25,8 @@ The suites are in `data/conformance/` at the repository root, unpacked, as check
 - the XML suite: `https://www.w3.org/XML/Test/xmlts20130923.tar.gz`. The paths below are inside it, and its index files are the `.xml` catalogues each directory holds;
 - the DOM suite: the pages under `https://www.w3.org/2004/04/ecmascript/`, linked below. Each page holds the JavaScript that runs and, at its foot, the XML description the W3C generated that JavaScript from, so the two can be compared;
 - the XInclude suite: `https://www.w3.org/XML/Test/XInclude/XIncl20060927.tar.gz`, whose index is `XIncl20060927/testdescr.xml`;
-- the `xml:id` suite: `https://www.w3.org/XML/2005/01/xml-id/`, whose index is `test-suite.xml`.
+- the `xml:id` suite: `https://www.w3.org/XML/2005/01/xml-id/`, whose index is `test-suite.xml`;
+- QT3: `https://github.com/w3c/qt3tests` at the commit `suites.json` pins, whose index is `catalog.xml`, with each test set's file under `fn/` or `prod/`.
 
 The examples below are shortened from the tests; the line numbers point at the full text, and for a DOM test they are lines of the page's source. The configurations are those of [testing.md](../../docs/testing.md#configurations): `standalone` opens no file but the document, while `external` and `validating` may read the DTDs and entities it names.
 
@@ -244,6 +246,53 @@ Each of these documents declares an unparsed entity `image` and a notation `jpg`
 | ----------------- | ----------------------------------------------------------------------- | --------------------------------------- |
 | `Nist-include-21` | `XIncl20060927/Nist/test/docs/nist-include-21.xml`, `ents/unparent.xml` | `XIncl20060927/testdescr.xml`, line 319 |
 | `Nist-include-55` | `XIncl20060927/Nist/test/docs/nist-include-55.xml`, `ents/unparent.xml` | `XIncl20060927/testdescr.xml`, line 615 |
+
+### QT3: 2 tests that expect case data from before Unicode 7.0
+
+Each test maps every character from U+0370 to U+03FF, Greek and Coptic, to upper or lower case, and compares the list of code points. Unicode 7.0 added U+037F, Greek capital letter yot, and paired it with U+03F3, Greek small letter yot, so that each is the other's case mapping. Both tests expect the two letters to map to themselves, as they did before Unicode 7.0, though each declares `<dependency type="unicode-version" value="7.0"/>`. Their description says they fail with JDK 6 but succeed with a later JDK, so the expected lists likely come from a JDK with older Unicode data. F&O 3.1 §1.1 leaves the Unicode version to the implementation and recommends the latest. exemplar uses JavaScript's own case mapping, which follows the runtime's Unicode, 17.0 in Node 24. Every other character in the range matches. Saxon-JS 2 and 3 return the same as exemplar. The tests are unchanged in w3c/qt3tests today.
+
+```xquery
+fn:string-to-codepoints(fn:lower-case(fn:codepoints-to-string(880 to 1023)))
+(: expected for U+037F: 895, itself; exemplar returns 1011, U+03F3 :)
+fn:string-to-codepoints(fn:upper-case(fn:codepoints-to-string(880 to 1023)))
+(: expected for U+03F3: 1011, itself; exemplar returns 895, U+037F :)
+```
+
+| Test               | File                          | Character             |
+| ------------------ | ----------------------------- | --------------------- |
+| `fn-lower-case-19` | `fn/lower-case.xml`, line 202 | U+037F, expected 895  |
+| `fn-upper-case-19` | `fn/upper-case.xml`, line 202 | U+03F3, expected 1011 |
+
+### QT3: 1 test that calls a function with an argument of the wrong type
+
+The test is for a processor without XQuery. It finds `fn:load-xquery-module#1` with `function-lookup` and calls it with the integer `0`, expecting `FOQM0006`, the error the function raises when no XQuery processor is available. But the function's one parameter is an `xs:string`, and XPath converts and checks every argument of a call against its parameter type before the function runs (XPath 3.1 §3.1.5.1). `0` is not a string, so the call raises `XPTY0004`, and the function, which is where `FOQM0006` is raised, is never reached. XPath lets a processor choose which error to report only when an expression raises more than one (§2.3.1, §2.3.3); here only the type error happens. The test beside it, `fn-function-lookup-764`, calls `load-xquery-module#2` the same way with a string and a map, and exemplar raises `FOQM0006` there; the tests of `load-xquery-module` itself, which are for XQuery, pass strings too. Saxon-JS 2 and 3 raise `XPTY0004` for this one too.
+
+```xpath
+function-lookup(fn:QName('http://www.w3.org/2005/xpath-functions', 'load-xquery-module'), 1)(0)
+(: expected FOQM0006; exemplar raises XPTY0004, as 0 is not an xs:string :)
+```
+
+| Test                     | File                                | Expected   | exemplar   |
+| ------------------------ | ----------------------------------- | ---------- | ---------- |
+| `fn-function-lookup-761` | `fn/function-lookup.xml`, line 5328 | `FOQM0006` | `XPTY0004` |
+
+### QT3: 5 tests that ask a UCA collation for collation keys
+
+`collation-key` gives bytes that compare as strings do under a collation: equal exactly when the collation finds the strings equal, and in the same order. F&O 3.1 §5.3.6 raises `FOCH0004` "if the collation does not support collation keys". exemplar runs the Unicode Collation Algorithm's collations through `Intl.Collator`, which compares two strings but gives no key, and a key cannot be built from comparisons, since it must hold for strings never compared. So `collation-key` raises `FOCH0004` for a UCA collation, while the codepoint and HTML case-insensitive collations give keys. None of these tests allows `FOCH0004`; `UCA-params-034` allows `FOCH0002` instead. Saxon-JS 2 and 3 return the string's own bytes as its key, whatever the collation, which passes the three tests that only check the key's type and fails the two that compare keys: at primary strength `compare("abc", "ABC", $C)` is 0, yet their Saxon-JS keys differ.
+
+```xpath
+let $C := "http://www.w3.org/2013/collation/UCA?lang=en;strength=primary"
+return collation-key("abc", $C) eq collation-key("ABC", $C)
+(: expected true; exemplar raises FOCH0004 :)
+```
+
+| Test                 | File                              | Expected                       |
+| -------------------- | --------------------------------- | ------------------------------ |
+| `collation-key-008`  | `fn/collation-key.xml`, line 86   | equal keys at primary strength |
+| `collation-key-009l` | `fn/collation-key.xml`, line 110  | lower case first               |
+| `collation-key-012`  | `fn/collation-key.xml`, line 144  | an `xs:base64Binary` key       |
+| `collation-key-013`  | `fn/collation-key.xml`, line 154  | an `xs:base64Binary` key       |
+| `UCA-params-034`     | `misc/UCACollation.xml`, line 856 | `true` or `FOCH0002`           |
 
 ## Tests that do not apply
 

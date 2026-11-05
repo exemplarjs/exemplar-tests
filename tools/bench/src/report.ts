@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Workload } from '@exemplarjs/adapters';
+import { AXIS_QUERIES, type Workload } from '@exemplarjs/adapters';
 import type { LibraryReport } from '@exemplarjs/conformance';
 import { type Bar, type BarChart, type Coverage, renderChart } from './charts.ts';
 import type { Difference } from './correctness.ts';
@@ -143,6 +143,16 @@ const WORKLOADS: readonly (readonly [Workload, string])[] = [
   ['stream', 'reads the same from a file in 64 KB chunks'],
   ['small', 'reads documents of 2–20 KB, which shows the cost per document'],
   ['tree', "builds the library's own tree"],
+  ['xdm', 'builds an XDM tree, the data model XPath, XQuery and XSLT run on'],
+  [
+    'xpath',
+    'runs a set of XPath queries over each document, parsed beforehand: the XMark queries on XMark, general ones elsewhere',
+  ],
+  ['axes', "times tree walks along every axis one by one, over the document parsed beforehand: XMark's names only"],
+  [
+    'compile',
+    "compiles each of the dataset's XPath queries 200 times, every copy made unique so that no cache answers, and runs it over a one-element document; shown in expressions compiled per second",
+  ],
   ['write', 'serializes events it read beforehand'],
   ['dtd', 'reads a one-element document with its large DTD, counting the DTD with the document'],
 ];
@@ -162,6 +172,12 @@ function part(fair: Fair): number {
   return fair.eligibleBytes === 0 ? 0 : fair.bytes / fair.eligibleBytes;
 }
 
+/** The tree workloads' memory columns in a dataset's table, with their headings. */
+const MEMORY_COLUMNS = [
+  ['tree', 'Tree MB'],
+  ['xdm', 'XDM MB'],
+] as const;
+
 /** One library's speed in one workload, in MB/s over the documents it read correctly. */
 function cell(summary: Summary | undefined): string {
   if (summary === undefined) return '–';
@@ -170,6 +186,24 @@ function cell(summary: Summary | undefined): string {
   if (band === 'failed') return 'FAILED';
   const speed = mbps(summary.fair);
   return `${speed === 0 ? '–' : speed.toFixed(1)}${mark(band)}`;
+}
+
+/** Expressions compiled per second in the `compile` workload, or 0 when there is nothing to time. */
+function compiledPerSecond(summary: Summary): number {
+  const compiled = summary.compiled;
+  return compiled === undefined || summary.bestMs <= 0 ? 0 : compiled / (summary.bestMs / 1000);
+}
+
+/** One library's compilation speed, in expressions per second. */
+function compileCell(summary: Summary | undefined): string {
+  if (summary === undefined) return '–';
+  const rate = compiledPerSecond(summary);
+  return rate === 0 ? 'FAILED' : rate.toFixed(0);
+}
+
+/** A cell of a workload's column: compilation speed for `compile`, else reading speed. */
+function workloadCell(workload: Workload, summary: Summary | undefined): string {
+  return workload === 'compile' ? compileCell(summary) : cell(summary);
 }
 
 /** The tree memory a library's trees held, in MB. */
@@ -222,8 +256,11 @@ function glance(report: BenchReport, workload: Workload, rows: (summary: Summary
 
 /** What the charts measure, and what the memory section notes. */
 const SPEED = 'MB/s on the documents each library reads correctly; exemplar in blue.';
+const QUERIED = 'MB of documents queried per second, on the documents read correctly; exemplar in blue.';
 const STREAMED = 'MB/s reading each file in 64 KB chunks, on the documents read correctly; exemplar in blue.';
 const HELD = 'MB held once every tree is built and kept; lower is better; exemplar in blue.';
+const COMPILED =
+  "Expressions compiled and run once per second, the dataset's queries each made unique; exemplar in blue.";
 const MEMORY =
   "MB still in use once every document's tree has been built and kept: heap, native memory V8 is told of, and native memory a library reports itself. ‡ and FAILED mean the same as for speeds: a library that failed some documents holds fewer trees.";
 
@@ -232,8 +269,23 @@ const SECTIONS = [
   { heading: 'Reading, MB/s', title: 'Reading speed', measure: SPEED, workload: 'read' },
   { heading: 'Streaming from a file, MB/s', title: 'Streaming speed', measure: STREAMED, workload: 'stream' },
   { heading: 'Building trees, MB/s', title: 'Tree building speed', measure: SPEED, workload: 'tree' },
+  { heading: 'Building XDM trees, MB/s', title: 'XDM tree building speed', measure: SPEED, workload: 'xdm' },
+  { heading: 'Querying with XPath, MB/s', title: 'XPath query speed', measure: QUERIED, workload: 'xpath' },
+  {
+    heading: 'Compiling XPath, expressions per second',
+    title: 'XPath compilation speed',
+    measure: COMPILED,
+    workload: 'compile',
+  },
   { heading: 'Reading DTDs, MB/s', title: 'DTD reading speed', measure: SPEED, workload: 'dtd' },
   { heading: 'Memory the trees hold', title: 'Memory the trees hold', measure: HELD, workload: 'tree', memory: true },
+  {
+    heading: 'Memory the XDM trees hold',
+    title: 'Memory the XDM trees hold',
+    measure: HELD,
+    workload: 'xdm',
+    memory: true,
+  },
 ] as const;
 
 /** One overview section. */
@@ -241,12 +293,13 @@ type Section = (typeof SECTIONS)[number];
 
 /** A section's chart file. */
 function file(section: Section): string {
-  return `${'memory' in section ? 'memory' : section.workload}.svg`;
+  if (!('memory' in section)) return `${section.workload}.svg`;
+  return section.workload === 'tree' ? 'memory.svg' : `memory-${section.workload}.svg`;
 }
 
 /** How a section shows a library: its cell and label, as memory or as speed. */
 function label(section: Section): (summary: Summary | undefined) => string {
-  return 'memory' in section ? memory : cell;
+  return 'memory' in section ? memory : (summary) => workloadCell(section.workload, summary);
 }
 
 /** How the charts' subtitles explain the colours. */
@@ -258,8 +311,11 @@ function bars(report: BenchReport, section: Section): Bar[] {
     report.summaries
       .filter((summary) => summary.dataset === dataset.name && summary.workload === section.workload)
       .map((summary): Bar => {
-        const band = coverage(summary.fair);
-        const value = 'memory' in section ? (summary.retainedMB ?? 0) : mbps(summary.fair);
+        // Compiling runs over a one-element document, so how well the dataset was read does not band it.
+        const compiling = section.workload === 'compile';
+        const band = compiling ? 'all' : coverage(summary.fair);
+        const speed = compiling ? compiledPerSecond(summary) : mbps(summary.fair);
+        const value = 'memory' in section ? (summary.retainedMB ?? 0) : speed;
         const shown = band === 'failed' ? 0 : value;
         return {
           dataset: dataset.title,
@@ -393,16 +449,17 @@ function datasetSection(report: BenchReport, dataset: DatasetEntry): string[] {
   const results = report.summaries.filter((entry) => entry.dataset === dataset.name);
   const differences = report.differences[dataset.name];
   const workloads = WORKLOADS.map(([workload]) => workload).filter((w) => results.some((e) => e.workload === w));
-  const trees = workloads.includes('tree');
+  // A memory column for each tree workload the dataset ran.
+  const held = MEMORY_COLUMNS.filter(([workload]) => workloads.includes(workload));
   const lines = [
     `## ${dataset.title}`,
     '',
     ...(dataset.about === undefined ? [] : [...dataset.about.map((point) => `- ${point}`), '']),
-    `${count(dataset.documents)} ${dataset.documents === 1 ? 'document' : 'documents'}, ${(dataset.bytes / 1e6).toFixed(1)} MB. Speeds are in MB/s.`,
+    `${count(dataset.documents)} ${dataset.documents === 1 ? 'document' : 'documents'}, ${(dataset.bytes / 1e6).toFixed(1)} MB. Speeds are in MB/s, except \`compile\`, in expressions per second.`,
     '',
     ...rejectedByReference(differences, dataset),
-    row(['Library', 'Reads correctly', ...workloads.map((w) => `\`${w}\``), ...(trees ? ['Tree MB'] : [])]),
-    row(['---', ...Array.from({ length: workloads.length + (trees ? 2 : 1) }, () => '---:')]),
+    row(['Library', 'Reads correctly', ...workloads.map((w) => `\`${w}\``), ...held.map(([, heading]) => heading)]),
+    row(['---', ...Array.from({ length: workloads.length + 1 + held.length }, () => '---:')]),
   ];
   const preferred: Workload[] = ['read', 'tree', ...workloads];
   for (const library of ordered(results.map((entry) => entry.library))) {
@@ -410,11 +467,41 @@ function datasetSection(report: BenchReport, dataset: DatasetEntry): string[] {
       results.find((entry) => entry.library === library && entry.workload === workload);
     const judged = preferred.map((w) => find(w)?.fair).find((fair) => fair !== undefined);
     const correct = judged === undefined ? 'n/a' : percent(part(judged));
-    const cells = workloads.map((w) => cell(find(w)));
-    if (trees) cells.push(memory(find('tree')));
+    const cells = workloads.map((w) => workloadCell(w, find(w)));
+    for (const [workload] of held) cells.push(memory(find(workload)));
     lines.push(row([library, correct, ...cells]));
   }
-  return [...lines, '', ...measurements(results, differences ?? [])];
+  return [...lines, '', ...axesTable(results), ...measurements(results, differences ?? [])];
+}
+
+/** The `axes` workload's queries one by one: each library's best time, and how many times exemplar's it is. */
+function axesTable(results: readonly Summary[]): string[] {
+  const timed = results.filter((entry) => entry.workload === 'axes' && entry.queryMs !== undefined);
+  if (timed.length === 0) return [];
+  const libraries = ordered(timed.map((entry) => entry.library));
+  const times = (library: string) => timed.find((entry) => entry.library === library)?.queryMs ?? [];
+  const reference = times('exemplar');
+  const lines = [
+    '### Tree walks, one by one',
+    '',
+    "Each query's best time over the rounds, in ms, and in brackets how many times exemplar's it is.",
+    '',
+    row(['Axis', 'Query', ...libraries]),
+    row(['---', '---', ...libraries.map(() => '---:')]),
+  ];
+  for (const [index, [axis, query]] of AXIS_QUERIES.entries()) {
+    const cells = libraries.map((library) => {
+      const ms = times(library)[index];
+      const base = reference[index];
+      if (ms === undefined) return 'n/a';
+      return library === 'exemplar' || base === undefined
+        ? ms.toFixed(1)
+        : `${ms.toFixed(1)} (${(ms / base).toFixed(1)}×)`;
+    });
+    // A table cell ends at any unescaped `|`, inside a code span too.
+    lines.push(row([axis, code(query).replaceAll('|', String.raw`\|`), ...cells]));
+  }
+  return [...lines, ''];
 }
 
 /** A share as a whole percentage, where a small share above none shows as under 1%. */
