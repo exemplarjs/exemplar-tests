@@ -16,7 +16,36 @@ defaults:
     working-directory: exemplar-tests
 
 jobs:
+  # A pull request is checked for format and root lint only; exemplar's CI runs the suites with its matching branch.
+  basics:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: exemplar-tests
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: exemplar-tests/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: exemplar-tests/.node-version
+          cache: pnpm
+          cache-dependency-path: exemplar-tests/pnpm-lock.yaml
+      # The lockfile links exemplar's packages to a checkout beside this one; empty packages stand in for it.
+      - name: Stand in for the exemplar checkout
+        run: |
+          for name in $(grep -o "'@exemplarjs/[a-z-]*'" pnpm-workspace.yaml | tr -d "'" | cut -d/ -f2); do
+            mkdir -p "../exemplar/packages/$name"
+            echo "{\"name\":\"@exemplarjs/$name\",\"version\":\"0.0.0\"}" > "../exemplar/packages/$name/package.json"
+          done
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint:root
+
+  # The jobs below need exemplar itself, so they run on main and on request, with exemplar's main.
   checks:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-26.04
     steps:
       # The lockfile links exemplar's packages to a checkout beside this one.
@@ -52,6 +81,7 @@ jobs:
       - run: pnpm conformance
 
   browsers:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
@@ -83,3 +113,42 @@ jobs:
       - run: pnpm compile
       - name: The XML suite in Chromium, Firefox and WebKit
         run: pnpm conformance:browser
+
+  qt3:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: exemplar-tests
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/exemplar
+          path: exemplar
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: exemplar-tests/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: exemplar-tests/.node-version
+          cache: pnpm
+          cache-dependency-path: '*/pnpm-lock.yaml'
+      # QT3 is downloaded on first use, pinned in suites.json; the cache keeps it between runs.
+      - uses: actions/cache@v6
+        with:
+          path: exemplar-tests/data/conformance/qt3
+          key: w3c-qt3-${{ hashFiles('exemplar-tests/tools/conformance/suites.json') }}
+      - name: Build exemplar
+        working-directory: exemplar
+        run: pnpm install --frozen-lockfile && pnpm compile
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm compile
+      - name: QT3's XPath 3.1 expressions, through exemplar's parser
+        run: pnpm qt3:parse
+      - name: QT3 as an XPath 3.1 suite, against the XPath processors
+        run: pnpm qt3
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: qt3
+          path: exemplar-tests/tools/conformance/reports/qt3.*

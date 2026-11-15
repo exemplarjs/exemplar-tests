@@ -30,6 +30,7 @@
   "jdk-catalog/prefer-public-inner-group": "The JDK does not let a group's prefer=\"public\" override its catalog's prefer=\"system\"; \u00a74.1.1 has each prefer attribute set the mode for the entries it contains",
   "jdk-catalog/prefer-first-eligible": "The JDK does not let a group's prefer=\"public\" override its catalog's prefer=\"system\"; \u00a74.1.1 has each prefer attribute set the mode for the entries it contains",
   "jdk-catalog/relative-base": "The JDK rejects a relative xml:base; XML Base, which \u00a76.1 makes normative, resolves it against the base URI in force",
+  "jdk-catalog/missing-file-first": "The JDK passes over a catalog file it was given that cannot be read, as \u00a78 says; exemplar fails with CATALOG_UNREADABLE, so that a mistyped catalog file is found",
   "jdk-catalog/incomplete-entry": "The JDK fails on an entry without a required attribute; exemplar ignores that entry",
   "jdk-catalog/uri-relative-made-absolute": "exemplar tries a relative URI made absolute once it fails as written, as \u00a77.2.1 suggests; the JDK tries it only as written",
   "jdk-catalog/uri-own-kind-first": "exemplar tries a lookup's own kind of entry in every catalog file before the other kind, so that every answer the specification gives stands; the JDK tries both kinds in each file before the next",

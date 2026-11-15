@@ -5,7 +5,24 @@ export type Configuration = 'standalone' | 'external' | 'validating';
 export type CanonicalForm = 'first' | 'second';
 
 /** A benchmark task every library performs the same way. */
-export type Workload = 'walk' | 'read' | 'tree' | 'stream' | 'small' | 'write' | 'dtd';
+export type Workload =
+  | 'walk'
+  | 'read'
+  | 'tree'
+  | 'xdm'
+  | 'xpath'
+  | 'axes'
+  | 'compile'
+  | 'stream'
+  | 'small'
+  | 'write'
+  | 'dtd';
+
+/** The workloads that run XPath queries, which XPath processors take part in. */
+export const XPATH_WORKLOADS: ReadonlySet<Workload> = new Set(['xpath', 'axes', 'compile']);
+
+/** The workloads that build trees, whose memory is measured too. */
+export const TREE_WORKLOADS: ReadonlySet<Workload> = new Set(['tree', 'xdm']);
 
 /** A document to parse: its bytes, its location and any encoding supplied from outside. */
 export interface Source {
@@ -89,9 +106,9 @@ export interface Adapter {
   prepare?(workload: Workload, input: Input): unknown;
   /** Performs one workload and returns a count that depends on everything it read or wrote. */
   run(workload: Workload, input: Input, prepared?: unknown): number | Promise<number>;
-  /** Builds and returns the library's tree, which the `tree` workload keeps to measure the heap it retains. */
-  build?(input: Input): unknown;
-  /** The memory the library holds outside V8, which the `tree` workload counts as retained too. */
+  /** Builds and returns the library's tree for a tree workload, which keeps it to measure the memory it retains. */
+  build?(input: Input, workload: Workload): unknown;
+  /** The memory the library holds outside V8, which the tree workloads count as retained too. */
   nativeMemory?(): number;
 }
 

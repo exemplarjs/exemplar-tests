@@ -1,5 +1,13 @@
 import { readFileSync, statSync } from 'node:fs';
-import { type Adapter, type Input, type Workload, decode, detectedEncoding } from '@exemplarjs/adapters';
+import {
+  type Adapter,
+  type Input,
+  TREE_WORKLOADS,
+  type Workload,
+  decode,
+  detectedEncoding,
+  takeQueryTimes,
+} from '@exemplarjs/adapters';
 import { type Dataset, ensureDataset, inputBytes } from './datasets.ts';
 import { library } from './libraries.ts';
 
@@ -20,10 +28,12 @@ export interface Measurement {
   readonly errors: number;
   readonly heapUsed: number;
   readonly maxRss: number;
-  /** For `tree`: the heap and external memory every document's tree holds, all kept at once. */
+  /** For `tree` and `xdm`: the heap and external memory every document's tree holds, all kept at once. */
   readonly retained?: number;
   /** Left out of the report's rounds once the harness has summed it over the documents each comparison needs. */
   readonly perDocument?: DocumentTimes;
+  /** For `axes`: the timed pass's milliseconds for each query, summed over the documents. */
+  readonly queryMs?: readonly number[];
 }
 
 /** Whether a document is the size the `small` workload reads: 2–20 KB. */
@@ -47,6 +57,8 @@ function load(dataset: Dataset, workload: Workload): Indexed[] {
       continue;
     }
     if (workload === 'small' && !isSmall(file)) continue;
+    // `compile` needs only the dataset's query set, which its first document stands for.
+    if (workload === 'compile' && inputs.length > 0) break;
     const bytes = readFileSync(file);
     try {
       const text = decode(bytes, detectedEncoding(bytes));
@@ -110,13 +122,17 @@ async function work(name: string, workload: Workload, datasetName: string): Prom
   const prepared = prepare(adapter, workload, inputs);
   await pass(adapter, workload, inputs, prepared, results(inputs.length));
   await settle();
+  // The warm-up pass's query times are dropped.
+  takeQueryTimes();
   const times = results(inputs.length);
   const start = performance.now();
   await pass(adapter, workload, inputs, prepared, times);
   const ms = performance.now() - start;
+  const queryMs = takeQueryTimes();
   await settle();
   const heapUsed = process.memoryUsage().heapUsed;
-  const retained = workload === 'tree' && adapter.build ? await retainedBy(adapter, inputs) : undefined;
+  const retained =
+    TREE_WORKLOADS.has(workload) && adapter.build ? await retainedBy(adapter, workload, inputs) : undefined;
   return {
     ms,
     documents: inputs.length,
@@ -124,6 +140,7 @@ async function work(name: string, workload: Workload, datasetName: string): Prom
     heapUsed,
     maxRss: process.resourceUsage().maxRSS * 1024,
     ...(retained !== undefined && { retained }),
+    ...(queryMs.length > 0 && { queryMs }),
     perDocument: { index: inputs.map((input) => input.index), bytes: inputs.map((input) => input.size), ...times },
   };
 }
@@ -138,12 +155,12 @@ function used(adapter: Adapter): number {
 let kept: unknown[] = [];
 
 /** The memory the trees of every input hold while all are kept. */
-async function retainedBy(adapter: Adapter, inputs: readonly Input[]): Promise<number> {
+async function retainedBy(adapter: Adapter, workload: Workload, inputs: readonly Input[]): Promise<number> {
   await settle();
   const before = used(adapter);
   for (const input of inputs) {
     try {
-      kept.push(await adapter.build?.(input));
+      kept.push(await adapter.build?.(input, workload));
     } catch {
       // A document the library throws on holds no tree.
     }

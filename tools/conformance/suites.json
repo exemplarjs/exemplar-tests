@@ -1,4 +1,10 @@
 {
+  "qt3": {
+    "kind": "archive",
+    "url": "https://codeload.github.com/w3c/qt3tests/tar.gz/201a6e466940cdfc727f4babfedcde5332b9f578",
+    "sha256": "1b65f66069224fec92445f9d68f85df1f6cde3b75452f26bd4797d9006bd7b65",
+    "onDemand": true
+  },
   "xmlts": {
     "kind": "archive",
     "url": "https://www.w3.org/XML/Test/xmlts20130923.tar.gz",

@@ -15,4 +15,5 @@ reports/
 
 # Downloaded on first use: the XML suite's collections may be redistributed only as their authors publish them.
 /data/conformance/xmlts/
+/data/conformance/qt3/
 /data/conformance/*.unpacking-*/

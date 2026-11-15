@@ -8,10 +8,22 @@ import { LIBRARIES, library } from './libraries.ts';
 import { type DatasetEntry, conformanceColumns, datasetEntry, environment, writeBenchReports } from './report.ts';
 import { isSmall } from './worker.ts';
 
-const WORKLOADS: readonly Workload[] = ['walk', 'read', 'tree', 'stream', 'small', 'write', 'dtd'];
+const WORKLOADS: readonly Workload[] = [
+  'walk',
+  'read',
+  'tree',
+  'xdm',
+  'xpath',
+  'axes',
+  'compile',
+  'stream',
+  'small',
+  'write',
+  'dtd',
+];
 
-/** The workloads a dataset runs unless it names its own. */
-const DEFAULT_WORKLOADS = WORKLOADS.filter((workload) => workload !== 'dtd');
+/** The workloads a dataset runs unless it names its own: all but `dtd`, `compile` and `axes`, which only some datasets name. */
+const DEFAULT_WORKLOADS = WORKLOADS.filter((workload) => !['dtd', 'compile', 'axes'].includes(workload));
 
 /** Runs the workloads on one dataset after checking each library's output, and returns the summaries. */
 async function runDataset(
@@ -28,12 +40,7 @@ async function runDataset(
       ? libraries
       : libraries.filter((name) => runs.some((workload) => library(name).workloads.includes(workload)));
   const inMemory = runs.some((workload) => workload !== 'stream');
-  const checked = inMemory
-    ? await compare(
-        compared.map((name) => library(name)),
-        dataset
-      )
-    : undefined;
+  const checked = inMemory ? await compare(compared, dataset) : undefined;
   const summaries: Summary[] = [];
   for (const workload of runs) {
     if (workload === 'small' && !dataset.documents.some((file) => isSmall(file))) continue;

@@ -10,6 +10,8 @@ interface ArchiveSuite {
   readonly kind: 'archive';
   readonly url: string;
   readonly sha256: string;
+  /** Fetched only by the tool that needs it, not before every conformance run. */
+  readonly onDemand?: boolean;
 }
 
 /** A suite published as separate files under one base URL. */
@@ -30,8 +32,8 @@ export function suites(): Record<string, SuiteSpec> {
   return JSON.parse(readFileSync(path.join(PACKAGE, 'suites.json'), 'utf8')) as Record<string, SuiteSpec>;
 }
 
-/** Returns the SHA-256 of some bytes, in hex. */
-export function sha256(data: Uint8Array): string {
+/** Returns the SHA-256 of some bytes or text, in hex. */
+export function sha256(data: Uint8Array | string): string {
   return createHash('sha256').update(data).digest('hex');
 }
 

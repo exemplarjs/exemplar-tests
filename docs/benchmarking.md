@@ -28,19 +28,20 @@ The harness, workloads, dataset list and reports are in `tools/bench`, and one a
 
 ## Libraries
 
-| Library                | Styles                          | Runtimes          |
-| ---------------------- | ------------------------------- | ----------------- |
-| exemplar               | Pull, events, push, DOM, writer | All               |
-| sax                    | Push                            | All               |
-| saxes                  | Push                            | All               |
-| saxen                  | Push                            | All               |
-| stax-xml               | Pull, events, writer            | All               |
-| txml                   | Tree                            | All               |
-| fast-xml-parser        | Object, writer                  | All               |
-| htmlparser2 (XML mode) | Push                            | All               |
-| @xmldom/xmldom         | DOM, serializer                 | All               |
-| libxmljs2              | DOM, push (native libxml2)      | Node only         |
-| Saxon-JS               | Tree, through its own parser    | Node and browsers |
+| Library                | Styles                                  | Runtimes          |
+| ---------------------- | --------------------------------------- | ----------------- |
+| exemplar               | Pull, events, push, DOM, XDM, writer    | All               |
+| sax                    | Push                                    | All               |
+| saxes                  | Push                                    | All               |
+| saxen                  | Push                                    | All               |
+| stax-xml               | Pull, events, writer                    | All               |
+| txml                   | Tree                                    | All               |
+| fast-xml-parser        | Object, writer                          | All               |
+| htmlparser2 (XML mode) | Push                                    | All               |
+| @xmldom/xmldom         | DOM, serializer                         | All               |
+| libxmljs2              | DOM, push (native libxml2)              | Node only         |
+| Saxon-JS 2             | XDM tree, through its own parser; XPath | Node and browsers |
+| Saxon-JS 3 (beta)      | XDM tree, through its own parser; XPath | Node and browsers |
 
 Versions are pinned exactly in the catalog in `pnpm-workspace.yaml` and updated deliberately, each update in a change of its own.
 
@@ -62,13 +63,13 @@ Each adapter has three parts:
 - `canonical(source, configuration, form)`, which returns a document in the first or second canonical form, the forms the conformance runner compares, or a rejection carrying the error's code, line, column and system id where the library gives them;
 - `run(workload, source)`, which performs one workload.
 
-A tree library's adapter also has `build(input)`, which returns the tree for the retained-memory measure.
+A tree library's adapter also has `build(input, workload)`, which returns the tree a tree workload builds, for the retained-memory measure.
 
 An adapter uses each library the way that library's documentation recommends for the task, with the settings that make it parse XML correctly. For example: sax in strict mode, stax-xml in document mode, and saxen with its decoder called on every text and attribute value.
 
 ## Correct output first
 
-Before a library is timed on a dataset, its canonical output for every document is compared with exemplar's. exemplar's own output is checked against Xerces on the XML suite by the differential tests.
+Before a library is timed on a dataset, its canonical output for every document is compared with exemplar's, in a process of its own, as each timed round is. exemplar's own output is checked against Xerces on the XML suite by the differential tests.
 
 The comparison decides what each library is timed on:
 
@@ -87,17 +88,31 @@ The report also counts, for every library, the documents it throws on and those 
 
 ## Workloads
 
-| Workload | What each library does                                                        | Libraries            |
-| -------- | ----------------------------------------------------------------------------- | -------------------- |
-| `walk`   | Parse and visit every event, reading nothing                                  | Pull and push        |
-| `read`   | Read every element name, attribute name and value, and text, all decoded      | Pull and push        |
-| `tree`   | Build the library's own tree or object                                        | Tree, DOM and object |
-| `stream` | `read`, from a file in 64 KB chunks, in bounded memory                        | Those that stream    |
-| `small`  | `read`, over thousands of documents of 2–20 KB, to show per-document overhead | Pull and push        |
-| `write`  | Serialize a prepared document: the library's own events, read before timing   | Those with writers   |
-| `dtd`    | `read`, of a one-element document with a large DTD read from files            | Those that read DTDs |
+| Workload  | What each library does                                                                          | Libraries                         |
+| --------- | ----------------------------------------------------------------------------------------------- | --------------------------------- |
+| `walk`    | Parse and visit every event, reading nothing                                                    | Pull and push                     |
+| `read`    | Read every element name, attribute name and value, and text, all decoded                        | Pull and push                     |
+| `tree`    | Build the library's own tree or object                                                          | Tree, DOM and object              |
+| `xdm`     | Build an XDM tree, the data model XPath, XQuery and XSLT run on                                 | exemplar and Saxon-JS 2 and 3     |
+| `xpath`   | Run a set of XPath queries over each document, parsed before timing                             | exemplar and the XPath processors |
+| `axes`    | Time tree walks along every axis one by one over each document, parsed before timing            | exemplar and the XPath processors |
+| `compile` | Compile the dataset's XPath queries, each copy unique, and run them over a one-element document | exemplar and the XPath processors |
+| `stream`  | `read`, from a file in 64 KB chunks, in bounded memory                                          | Those that stream                 |
+| `small`   | `read`, over thousands of documents of 2–20 KB, to show per-document overhead                   | Pull and push                     |
+| `write`   | Serialize a prepared document: the library's own events, read before timing                     | Those with writers                |
+| `dtd`     | `read`, of a one-element document with a large DTD read from files                              | Those that read DTDs              |
 
 A library with no style for a workload shows "–".
+
+Saxon-JS 2 and 3 run as `saxon-js-2`, from the `saxon-js` package, and `saxon-js-3`, from `saxonjs-he`, whose only release so far is a beta. Both set the same globals as they load, so they never share a process: every runner loads one library per process or worker.
+
+Saxon-JS builds one tree, the XDM tree its XPath and XSLT run on, so it takes part in `tree` and `xdm` alike; exemplar builds its DOM in `tree` and its XDM tree in `xdm`. In both, exemplar's output check reads through its cursor, as for every workload.
+
+In `xpath`, each library parses every document into its own tree before timing, then runs the dataset's queries over it, through the same XPath adapters the QT3 runner uses: XMark's own queries on XMark, those XPath 3.1 can state without element constructors, with its joins cut to 200 people and its `order by` written with `fn:sort`; and on every other dataset a general set, with wildcard namespaces so that it fits any vocabulary, of names, attributes, text, positions and ancestors. The count of items the queries return is the workload's count, which must equal exemplar's.
+
+In `axes`, only XMark, whose names its queries use, each library runs 64 tree walks over its parsed tree, one at a time and timed one by one: every axis, positions after `//` and on steps, predicates, unions and string values, then the operations that need only part of a path: existence tests, first items, counts of paths and quantifiers. A walk returns its nodes and the workload counts them, so that every library visits each node rather than counting a path without walking it; a query that gives a number counts as that number, and one that gives a boolean as 1 or 0. The sum is the workload's count, which must equal exemplar's. Besides the workload's total, the report shows each query's best time over the rounds and how many times exemplar's it is.
+
+In `compile`, each library compiles the same queries 200 times over, every copy ending in a comment of its own, such as `(: 41 :)`, so that no library's cache of compiled expressions can answer, and runs each over a one-element document, which costs next to nothing. It goes through each library's documented evaluation call, as none of them documents a compile-only one, so a little evaluation is in the time; the report shows expressions per second. Only XMark, for its own queries, and OpenStack, for the general ones, run it, from their first document; the query set is all it needs.
 
 **Checked counts.** The output check runs untimed, so in `read`, `small`, `stream` and `dtd` the timed code is checked too. Each adapter counts the same content in each document: the local names of elements and attributes, attribute values, text and CDATA inside the root element, and processing instructions' targets and data, leaving out namespace declarations and an XML declaration reported as an instruction. A document whose count differs from exemplar's is left out of the library's speed, as if it had read the document wrongly, and the raw measurements say how many there were. `walk` counts events, which libraries report differently, so its counts are not checked.
 
@@ -138,7 +153,7 @@ A scaling series runs at 100 K and 1 M elements. Time per element must stay flat
 - **Measures:**
   - throughput, as input MB/s over the documents a library reads correctly;
   - ns per event, with events counted once per dataset, as each markup start and each non-blank text run;
-  - retained memory, for `tree`: what every document's tree holds with all of them kept at once, as heap, native memory V8 is told of, and native memory a library reports itself, as libxmljs2 does;
+  - retained memory, for `tree` and `xdm`: what every document's tree holds with all of them kept at once, as heap, native memory V8 is told of, and native memory a library reports itself, as libxmljs2 does;
   - peak RSS, from `process.resourceUsage().maxRSS`.
 - **Records.** Every report carries the machine, the Node and V8 versions, the library versions, each dataset's version and the commit.
 
@@ -150,7 +165,7 @@ A scaling series runs at 100 K and 1 M elements. Time per element must stay flat
 EXEMPLAR_BASELINE=$HOME/exemplar-main pnpm --filter @exemplarjs/bench bench run --datasets xmark,freebsd-doc --workloads walk,read,tree --libraries exemplar,exemplar@main --rounds 10
 ```
 
-The baseline needs only its packages' `dist`: `pnpm install` and `pnpm compile` in that checkout. `bench:remote` does not pass `EXEMPLAR_BASELINE` on, so to compare on the bench machine, build the baseline there and run the bench in a shell on it.
+The baseline needs only its packages' `dist`: `pnpm install` and `pnpm compile` in that checkout. A baseline from before the xdm package has no `xdm` workload. `bench:remote` does not pass `EXEMPLAR_BASELINE` on, so to compare on the bench machine, build the baseline there and run the bench in a shell on it.
 
 The baseline's output is not checked, only its counts. It reads with exemplar's built-in decoders alone, so in `stream`, the one workload that hands it bytes, it throws on `freebsd-doc`'s EUC-JP documents and is timed on the rest; compare that cell on the same documents.
 
@@ -160,10 +175,10 @@ Shared CI runners vary from run to run, so the numbers exemplar publishes come f
 
 Each run writes `reports/bench.md` and `reports/bench.json`. The report has:
 
-- **At a glance:** a table each for `read`, `stream`, `tree` and `dtd` across every dataset, and one for the memory the trees hold, each under a bar chart of the same numbers. The charts are drawn with Vega-Lite and written as SVG to `reports/charts`: a panel per dataset with its own scale, on a light gray background, with exemplar's bars in blue and the others' colored by [coverage](#correct-output-first). Each cell gives a library's speed in MB/s over the documents it reads correctly, marked ‡ or shown as FAILED by coverage.
+- **At a glance:** a table each for `read`, `stream`, `tree`, `xdm` and `dtd` across every dataset, and one each for the memory the trees and the XDM trees hold, each under a bar chart of the same numbers. The charts are drawn with Vega-Lite and written as SVG to `reports/charts`: a panel per dataset with its own scale, on a light gray background, with exemplar's bars in blue and the others' colored by [coverage](#correct-output-first). Each cell gives a library's speed in MB/s over the documents it reads correctly, marked ‡ or shown as FAILED by coverage.
 - **How much each library checks:** its conformance scores, as a chart and a table, since a library that checks less can be faster. "Rejects malformed" is the share of `not-wf` tests it rejects under `standalone`, and "Correct data" the share of `OUTPUT` comparisons it passes, both from the [conformance reports](testing.md#reports). Run the conformance command line with no names first, so that every library has its scores.
 - **Datasets:** what each holds, and how many files preparation left out.
-- **A section per dataset:** what the dataset is, then a row per library and a column per workload, with the share of the dataset each library reads correctly and the memory its trees hold. The raw measurements are folded away below.
+- **A section per dataset:** what the dataset is, then a row per library and a column per workload, with the share of the dataset each library reads correctly and the memory its trees and XDM trees hold. The raw measurements are folded away below.
 - **How this was measured**, briefly.
 
 **Over time.** No results are stored in the repository. Nightly results are kept as CI artifacts.

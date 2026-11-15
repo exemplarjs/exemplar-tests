@@ -135,6 +135,7 @@
     "title": "OpenStack manuals",
     "version": "juno-eol (304d14ff)",
     "licence": "Apache-2.0, CC BY 3.0 and CC BY-SA 3.0, by book",
+    "workloads": ["walk", "read", "tree", "xdm", "xpath", "compile", "stream", "small", "write"],
     "documents": "\\.xml$",
     "sources": [
       {
@@ -149,6 +150,7 @@
     "title": "XMark",
     "version": "xmlgen from CWI, factor 1",
     "licence": "Unclear; generated locally and never redistributed",
+    "workloads": ["walk", "read", "tree", "xdm", "xpath", "axes", "compile", "stream", "small", "write"],
     "documents": "^xmark-1\\.xml$",
     "sources": [{ "kind": "xmark", "url": "https://projects.cwi.nl/xmark/Assets/unix.c", "factors": [1] }]
   },

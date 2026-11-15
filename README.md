@@ -24,25 +24,27 @@ Run `pnpm install` again after adding or removing the checkout.
 
 ## Commands
 
-| Command                                      | What it does                                                                                        |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `pnpm install`                               | Installs everything, linking exemplar's packages to `../exemplar` when it is there                  |
-| `pnpm compile`                               | Type-checks and builds the shared config and the adapters                                           |
-| `pnpm typecheck`, `pnpm lint`, `pnpm format` | Type-checks, lints and formats                                                                      |
-| `pnpm conformance`                           | Runs the W3C suites, with the consistency checks and a short fuzz run                               |
-| `pnpm conformance:browser`                   | Runs the XML suite in Chromium, Firefox and WebKit                                                  |
-| `pnpm differential`                          | Compares exemplar with libxml2, Xerces and `javax.xml.catalog`                                      |
-| `pnpm fuzz`                                  | Fuzzes mutated suite documents against libxml2                                                      |
-| `pnpm bench`                                 | Runs the quick benchmark set                                                                        |
-| `pnpm bench:remote`                          | Runs the benchmarks on another machine over SSH, with `../exemplar`, and copies the reports back    |
-| `pnpm clean:output`                          | Runs each package's `clean:output`, which removes its build and test output; benchmark reports stay |
-| `pnpm reset`                                 | Runs `clean:output`, then pnpm's own `clean` on every package                                       |
+| Command                                      | What it does                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm install`                               | Installs everything, linking exemplar's packages to `../exemplar` when it is there                           |
+| `pnpm compile`                               | Type-checks and builds the shared config and the adapters                                                    |
+| `pnpm typecheck`, `pnpm lint`, `pnpm format` | Type-checks, lints and formats                                                                               |
+| `pnpm conformance`                           | Runs the W3C suites, with the consistency checks and a short fuzz run                                        |
+| `pnpm conformance:browser`                   | Runs the XML suite in Chromium, Firefox and WebKit                                                           |
+| `pnpm qt3`                                   | Runs the W3C XPath and XQuery suite, QT3, as an XPath 3.1 suite, against Saxon-JS 2 and 3 and exemplar       |
+| `pnpm qt3:parse`                             | Parses every XPath 3.1 expression in QT3 with exemplar's parser, and lists where it disagrees with the suite |
+| `pnpm differential`                          | Compares exemplar with libxml2, Xerces and `javax.xml.catalog`                                               |
+| `pnpm fuzz`                                  | Fuzzes mutated suite documents against libxml2                                                               |
+| `pnpm bench`                                 | Runs the quick benchmark set                                                                                 |
+| `pnpm bench:remote`                          | Runs the benchmarks on another machine over SSH, with `../exemplar`, and copies the reports back             |
+| `pnpm clean:output`                          | Runs each package's `clean:output`, which removes its build and test output; benchmark reports stay          |
+| `pnpm reset`                                 | Runs `clean:output`, then pnpm's own `clean` on every package                                                |
 
 The differential tests and preparing a dataset need `xmllint` and a JDK; the browser tests need Playwright's browsers, from `pnpm exec playwright install` in `tools/conformance`; XMark needs a C compiler.
 
 ## Data
 
-The suites and datasets are committed byte for byte (`.gitattributes` turns off line-end conversion for `data/`), except the W3C XML suite, whose licence allows redistributing it only as its authors publish it: it is downloaded on first use, one 627 KB archive, and cached by CI. Each is pinned by SHA-256: the suites in `tools/conformance/suites.json`, the datasets in `tools/bench/datasets/`. A folder that is missing is downloaded or rebuilt from its pinned source and checked again. XMark is generated on first use and never committed, because its licence is unclear; the synthetic documents are generated too.
+The suites and datasets are committed byte for byte (`.gitattributes` turns off line-end conversion for `data/`), except the W3C XML suite, whose licence allows redistributing it only as its authors publish it: it is downloaded on first use, one 627 KB archive, and cached by CI. QT3, the XPath and XQuery suite, is downloaded the same way when `pnpm qt3` first runs, GitHub's 18 MB archive of `w3c/qt3tests` at a pinned commit, never committed, and cached by CI. Each is pinned by SHA-256: the suites in `tools/conformance/suites.json`, the datasets in `tools/bench/datasets/`. A folder that is missing is downloaded or rebuilt from its pinned source and checked again. XMark is generated on first use and never committed, because its licence is unclear; the synthetic documents are generated too.
 
 | Data                                   | Source                                                        | Licence                                                          |
 | -------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------- |
