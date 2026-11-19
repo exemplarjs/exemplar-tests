@@ -12,3 +12,15 @@ updates:
         patterns: ['*']
     commit-message:
       prefix: ci
+  # The project's dependencies, from pnpm-workspace.yaml's catalog and each package.json.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      dependencies:
+        patterns: ['*']
+    commit-message:
+      prefix: chore

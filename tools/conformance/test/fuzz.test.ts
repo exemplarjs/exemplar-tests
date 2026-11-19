@@ -10,7 +10,7 @@ import { mutate, mutations } from '../src/mutate.ts';
 
 const root = path.join(await ensureSuite('xmlts'), 'xmlconf');
 const documents = readXmlts(root).map((entry) => ({ ...entry, bytes: readFileSync(entry.path) }));
-// The nightly run scales the number of runs up; a failure's seed and path replay it.
+// The release run scales the number of runs up; a failure's seed and path replay it.
 const RUNS = 300 * Number(process.env['EXEMPLAR_FUZZ_SCALE'] ?? 1);
 const SEED = process.env['EXEMPLAR_FUZZ_SEED'];
 const PATH = process.env['EXEMPLAR_FUZZ_PATH'];

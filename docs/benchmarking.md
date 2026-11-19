@@ -171,7 +171,7 @@ The baseline's output is not checked, only its counts. It reads with exemplar's 
 
 ## Published numbers
 
-Shared CI runners vary from run to run, so the numbers exemplar publishes come from one fixed machine. That machine runs the full matrix nightly, on Node: every library, every workload and every dataset.
+Shared CI runners vary from run to run, so the numbers exemplar publishes come from one fixed machine. That machine runs the full matrix in exemplar's release workflow, on Node: every library, every workload and every dataset.
 
 Each run writes `reports/bench.md` and `reports/bench.json`. The report has:
 
@@ -181,4 +181,4 @@ Each run writes `reports/bench.md` and `reports/bench.json`. The report has:
 - **A section per dataset:** what the dataset is, then a row per library and a column per workload, with the share of the dataset each library reads correctly and the memory its trees and XDM trees hold. The raw measurements are folded away below.
 - **How this was measured**, briefly.
 
-**Over time.** No results are stored in the repository. Nightly results are kept as CI artifacts.
+**Over time.** No results are stored in the repository. Release results are kept as CI artifacts.
