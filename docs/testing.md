@@ -6,7 +6,7 @@ These tests have three jobs:
 - keep its results identical at every chunk size, through every API and on every runtime;
 - check it against libxml2 and the JDK's Xerces.
 
-They run on exemplar's build, never its sources: the build of an `exemplar` checkout beside this one, or else the latest published release ([README](../README.md#which-exemplar)). [exemplar's own repository](https://github.com/io-timeout/exemplar) holds its unit and property tests, and the documents that describe its design and API. [benchmarking.md](benchmarking.md) describes the benchmarks.
+They run on exemplar's build, never its sources: the build of an `exemplar` checkout beside this one, or else the latest published release ([README](../README.md#which-exemplar)). [exemplar's own repository](https://github.com/exemplarjs/exemplar) holds its unit and property tests, and the documents that describe its design and API. [benchmarking.md](benchmarking.md) describes the benchmarks.
 
 The runner lives in `tools/conformance` and the adapters it drives in `tools/adapters`; the [README](../README.md#the-repository) lists every package.
 
@@ -23,7 +23,7 @@ The runner lives in `tools/conformance` and the adapters it drives in `tools/ada
 
 ## Where it runs
 
-This repository's own pull requests check its format and its root lint only. Everything else runs from [exemplar's workflows](https://github.com/io-timeout/exemplar/tree/main/.github/workflows), which check out this repository on the branch named like the exemplar pull request, or on `main` when there is none, and run it on that change's build:
+This repository's own pull requests check its format and its root lint only. Everything else runs from [exemplar's workflows](https://github.com/exemplarjs/exemplar/tree/main/.github/workflows), which check out this repository on the branch named like the exemplar pull request, or on `main` when there is none, and run it on that change's build:
 
 - **every exemplar pull request:** this repository's lint and type check, `pnpm conformance` on Node, and the XML suite on Bun;
 - **exemplar's release:** the differentials, the long fuzz runs, the XML suite in Chromium, Firefox and WebKit, QT3, and the full benchmark matrix on the fixed machine.

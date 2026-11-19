@@ -1,6 +1,6 @@
 # exemplar-tests
 
-The W3C conformance suites, the differential and fuzz tests, and the benchmarks for [exemplar](https://github.com/io-timeout/exemplar), with the suites and datasets they read.
+The W3C conformance suites, the differential and fuzz tests, and the benchmarks for [exemplar](https://github.com/exemplarjs/exemplar), with the suites and datasets they read.
 
 ## Which exemplar
 

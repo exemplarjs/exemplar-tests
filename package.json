@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/io-timeout/exemplar-tests.git"
+    "url": "git+https://github.com/exemplarjs/exemplar-tests.git"
   },
   "type": "module",
   "scripts": {
