@@ -145,7 +145,15 @@ async function fromXmark(source: XmarkSource, directory: string): Promise<void> 
   mkdirSync(tools, { recursive: true });
   writeBelow(directory, XMARK_SOURCE, await download(source.url));
   const binary = path.join(tools, 'xmlgen');
-  const compiled = spawnSync('/usr/bin/cc', ['-O2', '-w', '-o', binary, path.join(directory, XMARK_SOURCE)]);
+  // Fused multiply-add changes the output on some CPUs, so it is off to give every machine the same bytes.
+  const compiled = spawnSync('/usr/bin/cc', [
+    '-O2',
+    '-ffp-contract=off',
+    '-w',
+    '-o',
+    binary,
+    path.join(directory, XMARK_SOURCE),
+  ]);
   if (compiled.status !== 0) throw new Error(`Compiling xmlgen failed: ${String(compiled.stderr)}`);
   for (const factor of source.factors) {
     const generated = spawnSync(binary, ['-f', String(factor), '-o', path.join(directory, `xmark-${factor}.xml`)]);
