@@ -6,7 +6,7 @@ The W3C conformance suites, the differential and fuzz tests, and the benchmarks 
 
 The tests run on exemplar's build, never its sources:
 
-- **Beside an exemplar checkout.** When `../exemplar` holds a checkout, `.pnpmfile.mjs` links every `@exemplarjs` package to it, so the tests run on its build. Build it first, with `pnpm install` and `pnpm compile` there, and again after each change. The lockfile records these links, so CI checks out both repositories side by side.
+- **Beside an exemplar checkout.** When `../exemplar` holds a checkout, `.pnpmfile.mjs` links every `@exemplarjs` package to it, so the tests run on its build. Build it first, with `pnpm install` and `pnpm compile` there, and again after each change. The lockfile records these links, so exemplar's CI, which runs the suites on each of its changes and releases, checks out both repositories side by side. This repository's own pull requests check format and root lint only ([docs/testing.md](docs/testing.md#where-it-runs)).
 - **On its own.** Without `../exemplar`, `pnpm install` installs the latest published release of each package instead. That changes the lockfile, which is not committed that way.
 
 Run `pnpm install` again after adding or removing the checkout.

@@ -28,7 +28,7 @@ function scoreInChild(name: string): Promise<LibraryScore> {
 async function score(names: readonly string[]): Promise<void> {
   const reports: LibraryReport[] = [];
   for (const name of names) {
-    // One library, as the Deno and Bun runs score exemplar, needs no process of its own.
+    // One library, as the Bun runs score exemplar, needs no process of its own.
     const { report, broken } = names.length === 1 ? await scoreLibrary(name) : await scoreInChild(name);
     reports.push(report);
     if (broken) process.exitCode = 1;

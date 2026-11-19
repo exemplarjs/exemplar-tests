@@ -21,17 +21,22 @@ The runner lives in `tools/conformance` and the adapters it drives in `tools/ada
 | Configuration    | One set of parser options a suite runs under, such as non-validating with external entities read.                                                                                                                                            |
 | Expected failure | A test listed, with a reason, as one exemplar is expected to fail.                                                                                                                                                                           |
 
-## Layers
+## Where it runs
 
-| Layer             | Tool                                                        | Runs                                                         | Proves                                                                         |
-| ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Conformance       | vitest, in `tools/conformance`                              | Every change                                                 | The W3C suites, under every configuration                                      |
-| XPath conformance | `pnpm qt3`, in `tools/conformance`                          | Every change                                                 | QT3, the XPath and XQuery suite, against the XPath processors                  |
-| Consistency       | Part of the conformance run                                 | Every change                                                 | The same results at every chunk size, through every API, for bytes and strings |
-| Fuzz              | vitest with fast-check; a command line against libxml2      | Briefly on every change, at length nightly                   | No crash or hang on any mutated suite document; agreement with libxml2         |
-| Differential      | Script                                                      | Nightly                                                      | Agreement with libxml2 and Xerces                                              |
-| Runtimes          | vitest browser mode; a command-line runner for Deno and Bun | Browsers on every change; Deno and Bun nightly               | The same results everywhere                                                    |
-| Performance       | `tools/bench` ([benchmarking.md](benchmarking.md))          | Each change against `main`, locally; the full matrix nightly | No regressions; comparisons with other libraries                               |
+This repository's own pull requests check its format and its root lint only. Everything else runs from [exemplar's workflows](https://github.com/io-timeout/exemplar/tree/main/.github/workflows), which check out this repository on the branch named like the exemplar pull request, or on `main` when there is none, and run it on that change's build:
+
+- **every exemplar pull request:** this repository's lint and type check, `pnpm conformance` on Node, and the XML suite on Bun;
+- **exemplar's release:** the differentials, the long fuzz runs, the XML suite in Chromium, Firefox and WebKit, QT3, and the full benchmark matrix on the fixed machine.
+
+| Layer             | Tool                                                   | Runs                                                            | Proves                                                                         |
+| ----------------- | ------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Conformance       | vitest, in `tools/conformance`                         | Every exemplar change                                           | The W3C suites, under every configuration                                      |
+| XPath conformance | `pnpm qt3`, in `tools/conformance`                     | On release                                                      | QT3, the XPath and XQuery suite, against the XPath processors                  |
+| Consistency       | Part of the conformance run                            | Every exemplar change                                           | The same results at every chunk size, through every API, for bytes and strings |
+| Fuzz              | vitest with fast-check; a command line against libxml2 | Briefly on every exemplar change, at length on release          | No crash or hang on any mutated suite document; agreement with libxml2         |
+| Differential      | Script                                                 | On release                                                      | Agreement with libxml2 and Xerces                                              |
+| Runtimes          | vitest browser mode; a command-line runner for Bun     | Node and Bun on every exemplar change; browsers on release      | The same results everywhere                                                    |
+| Performance       | `tools/bench` ([benchmarking.md](benchmarking.md))     | Each change against `main`, locally; the full matrix on release | No regressions; comparisons with other libraries                               |
 
 The commands run from the repository root:
 
@@ -156,7 +161,7 @@ Expected failures are keyed `dom/<level>/core/<test>`. They are of three kinds:
 
 ### Reports
 
-The conformance command line, `tools/conformance/src/cli.ts`, scores each library in a process of its own, `src/score.ts`, and writes `tools/conformance/reports/conformance.md` and `conformance.json`. A single library, as in the Deno and Bun runs, is scored in the command line's own process. They give pass, fail, expected-failure and not-applicable counts for each suite, configuration and test type. These are the numbers exemplar publishes.
+The conformance command line, `tools/conformance/src/cli.ts`, scores each library in a process of its own, `src/score.ts`, and writes `tools/conformance/reports/conformance.md` and `conformance.json`. A single library, as in the Bun runs, is scored in the command line's own process. They give pass, fail, expected-failure and not-applicable counts for each suite, configuration and test type. These are the numbers exemplar publishes.
 
 **Other libraries.** The runner also scores every other library that has an adapter, under the configurations each one supports. That gives the conformance columns of the [benchmark report](benchmarking.md#published-numbers). The expected-failure list applies to exemplar only.
 
@@ -196,7 +201,7 @@ It finds the catalogue files `xmlconf.xml` includes as external entities and rea
 On top of the core:
 
 - **vitest** creates one test for each catalogue entry and configuration, in `tools/conformance/test/`;
-- **a command-line entry**, `tools/conformance/src/cli.ts`, runs the same core under Deno and Bun, and for other libraries, and writes the reports.
+- **a command-line entry**, `tools/conformance/src/cli.ts`, runs the same core under Bun, and for other libraries, and writes the reports.
 
 Processors plug in through the adapters in `tools/adapters`, so the runner is proved independently of exemplar, against libxml2. libxml2's own suite program, `runxmlconf`, built from the same libxml2 release, runs the suite through the libxml2 API. Its outcome for each test, with the parser options it used, is recorded in `tools/conformance/test/fixtures/runxmlconf-2.9.13.json`. The runner is right when its `xmllint` adapter's outcome agrees with `runxmlconf`'s on every test both run, under the configuration that matches those options.
 
@@ -204,7 +209,6 @@ Processors plug in through the adapters in `tools/adapters`, so the runner is pr
 
 - vitest 5 takes `passWithNoTests` only at the root, so the conformance runner passes it on the command line.
 - Vite's module runner does not support `import.meta.resolve`, which the adapters use, so the browser configuration loads them outside Vite.
-- Deno cannot load libxmljs2's native module, so its adapter loads it on first use.
 
 ## XPath conformance (QT3)
 
@@ -226,7 +230,7 @@ QT3 is the W3C test suite for XPath and XQuery: about 32,000 test cases in 428 t
 
 **Isolation.** Tests run in a worker thread with a 2 GB heap. A test that runs out of memory, or runs longer than 20 seconds, fails, and a fresh worker goes on from the next test.
 
-CI runs it on every change, with the suite cached between runs, and keeps the reports as an artifact.
+exemplar's release workflow runs it, with the suite cached between runs, and keeps the reports as an artifact.
 
 **Reports.** `reports/qt3.md` has each processor's pass rate over the tests judged, its counts, why tests were left out, and its counts per test set; `reports/qt3.json` also lists every failure with the error it raised. A run limited by `--scope` writes `reports/qt3-<scope>.md` and `.json` instead.
 
@@ -246,7 +250,7 @@ The suites hold about 2,500 small documents, so this adds seconds, not minutes.
 
 fast-check mutates suite documents: up to three flipped, replaced, inserted, deleted or duplicated bytes, or a truncation, under every configuration. Each must either parse or throw an `XMLError` with a location, within 5 seconds. It must never throw anything else, and an asynchronous reader fed the bytes in chunks of a random size must give the same verdict, output, code and location. The mutations are in `tools/conformance/src/mutate.ts`.
 
-A short run is part of `pnpm conformance`, and a long run is nightly: `EXEMPLAR_FUZZ_SCALE` multiplies the number of runs. A failure prints its seed and path; `EXEMPLAR_FUZZ_SEED` and `EXEMPLAR_FUZZ_PATH` replay it. exemplar's own repository fuzzes generated documents, entity bombs and deep nesting.
+A short run is part of `pnpm conformance`, and exemplar's release workflow runs a long one: `EXEMPLAR_FUZZ_SCALE` multiplies the number of runs. A failure prints its seed and path; `EXEMPLAR_FUZZ_SEED` and `EXEMPLAR_FUZZ_PATH` replay it. exemplar's own repository fuzzes generated documents, entity bombs and deep nesting.
 
 **Fuzzing against libxml2.** `pnpm fuzz --runs N --seed S` mutates suite documents the same way and compares exemplar's verdict under `standalone` with libxml2's. Documents the two already disagree on are left out, since the differential reports those. A disagreement of a kind known to be libxml2's is set aside with its reason, such as libxml2 accepting `<!DOCTYPE` with no space after it or rejecting a namespace name that is not a URI; the rest are left for triage in `tools/conformance/reports/fuzz.md` and `fuzz.json`, each with the mutations that reproduce it. It runs nightly with 200,000 documents.
 
@@ -271,10 +275,10 @@ The reports are `tools/conformance/reports/differential.md` and `differential.js
 
 ## Runtimes
 
-- **Browsers:** vitest's browser mode runs the XML suite in Chromium, Firefox and WebKit through Playwright, on every change: `pnpm conformance:browser`. A global setup reads the suite's catalogue in Node and hands it to the browsers, and a Vite middleware serves the suite's files from `data/conformance/` byte for byte. Each browser runs every applicable test under all three configurations, with external files read from memory, and must fail exactly the listed tests. The other suites and the consistency check run on Node only.
-- **Deno and Bun:** these run the conformance command line, `tools/conformance/src/cli.ts exemplar`, nightly, with the same expected-failure list. The command line fails when a test fails that is not listed, or a listed one passes.
+- **Browsers:** vitest's browser mode runs the XML suite in Chromium, Firefox and WebKit through Playwright, in exemplar's release workflow: `pnpm conformance:browser`. A global setup reads the suite's catalogue in Node and hands it to the browsers, and a Vite middleware serves the suite's files from `data/conformance/` byte for byte. Each browser runs every applicable test under all three configurations, with external files read from memory, and must fail exactly the listed tests. The other suites and the consistency check run on Node only.
+- **Bun:** this runs the conformance command line, `tools/conformance/src/cli.ts exemplar`, on every exemplar change, with the same expected-failure list. The command line fails when a test fails that is not listed, or a listed one passes.
 - **Node:** runs everything.
 
 ## Performance
 
-[benchmarking.md](benchmarking.md) describes the benchmarks. Changes are timed against `main` locally, and the full comparison with other libraries runs nightly on a fixed machine.
+[benchmarking.md](benchmarking.md) describes the benchmarks. Changes are timed against `main` locally, and the full comparison with other libraries runs in exemplar's release workflow on a fixed machine.
