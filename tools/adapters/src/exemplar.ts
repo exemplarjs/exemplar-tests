@@ -18,6 +18,7 @@ import {
   XMLInputFactory,
 } from '@exemplarjs/xml';
 import { fileResolver } from '@exemplarjs/xml/resolvers/file';
+import { XPathCompiler } from '@exemplarjs/xpath';
 import {
   type Adapter,
   type CanonicalForm,
@@ -34,7 +35,7 @@ import { CanonicalWriter } from './canonical.ts';
 import { instructionLength } from './content.ts';
 import { decode, detectedEncoding, installedVersion } from './decode.ts';
 import { writeDomTree } from './dom-tree.ts';
-import { exemplarXPathAdapter } from './exemplar-xpath.ts';
+import { exemplarXPathAdapterFor } from './exemplar-xpath.ts';
 import { withXPath } from './xpath-workload.ts';
 
 /** Recoverable errors and warnings are counted, not thrown, so they do not reject a well-formed document. */
@@ -462,5 +463,10 @@ export const exemplarAdapter: Adapter = withXPath(
       dtd: dtdFactory,
     }),
   },
-  exemplarXPathAdapter
+  // Queries run over the trees the `xdm` workload builds, so both read the same documents.
+  exemplarXPathAdapterFor({
+    Compiler: XPathCompiler,
+    builder: xdmBuilder,
+    version: installedVersion('@exemplarjs/xpath'),
+  })
 );

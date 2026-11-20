@@ -123,7 +123,9 @@ export function exemplarXPathAdapterFor(
     if (compiler === undefined) {
       // QT3 gives the default element namespace as the namespace of the prefix ''.
       const { '': defaultElementNamespace, ...namespaces } = context.namespaces;
+      // No cache, so that each call compiles, as the other processors' adapters do.
       compiler = new Compiler({
+        cache: false,
         namespaces,
         ...(defaultElementNamespace !== undefined && { defaultElementNamespace }),
         ...(context.staticBaseURI !== undefined && { baseURI: context.staticBaseURI }),
