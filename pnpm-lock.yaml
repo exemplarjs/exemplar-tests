@@ -165,38 +165,38 @@ settings:
 catalogs:
   default:
     '@exemplarjs/canonical':
-      specifier: link:../exemplar/packages/canonical
-      version: link:../exemplar/packages/canonical
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/catalog':
-      specifier: link:../exemplar/packages/catalog
-      version: link:../exemplar/packages/catalog
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/dom':
-      specifier: link:../exemplar/packages/dom
-      version: link:../exemplar/packages/dom
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/encodings-cjk':
-      specifier: link:../exemplar/packages/encodings-cjk
-      version: link:../exemplar/packages/encodings-cjk
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/sax':
-      specifier: link:../exemplar/packages/sax
-      version: link:../exemplar/packages/sax
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/validation':
-      specifier: link:../exemplar/packages/validation
-      version: link:../exemplar/packages/validation
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/writer':
-      specifier: link:../exemplar/packages/writer
-      version: link:../exemplar/packages/writer
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/xdm':
-      specifier: link:../exemplar/packages/xdm
-      version: link:../exemplar/packages/xdm
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/xinclude':
-      specifier: link:../exemplar/packages/xinclude
-      version: link:../exemplar/packages/xinclude
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/xml':
-      specifier: link:../exemplar/packages/xml
-      version: link:../exemplar/packages/xml
+      specifier: latest
+      version: 0.2.0
     '@exemplarjs/xpath':
-      specifier: link:../exemplar/packages/xpath
-      version: link:../exemplar/packages/xpath
+      specifier: latest
+      version: 0.2.0
     '@fast-check/vitest':
       specifier: 0.5.0
       version: 0.5.0
@@ -350,31 +350,31 @@ importers:
     dependencies:
       '@exemplarjs/canonical':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/canonical
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/dom':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/dom
+        version: 0.2.0(@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xml@0.2.0)
       '@exemplarjs/encodings-cjk':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/encodings-cjk
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/sax':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/sax
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/validation':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/validation
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/writer':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/writer
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/xdm':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xdm
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/xml':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xml
+        version: 0.2.0
       '@exemplarjs/xpath':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xpath
+        version: 0.2.0(@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xdm@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xml@0.2.0)
       '@xmldom/xmldom':
         specifier: 'catalog:'
         version: 0.9.12
@@ -423,10 +423,10 @@ importers:
         version: link:../conformance
       '@exemplarjs/sax':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/sax
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/xml':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xml
+        version: 0.2.0
     devDependencies:
       '@exemplarjs/build-config':
         specifier: workspace:*
@@ -445,28 +445,28 @@ importers:
         version: link:../adapters
       '@exemplarjs/canonical':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/canonical
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/catalog':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/catalog
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/dom':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/dom
+        version: 0.2.0(@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xml@0.2.0)
       '@exemplarjs/encodings-cjk':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/encodings-cjk
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/validation':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/validation
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/xinclude':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xinclude
+        version: 0.2.0(@exemplarjs/xml@0.2.0)
       '@exemplarjs/xml':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xml
+        version: 0.2.0
       '@exemplarjs/xpath':
         specifier: 'catalog:'
-        version: link:../../../exemplar/packages/xpath
+        version: 0.2.0(@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xdm@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xml@0.2.0)
       stax-xml:
         specifier: 'catalog:'
         version: 1.1.2
@@ -527,6 +527,62 @@ packages:
   '@eslint/plugin-kit@0.7.3':
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
+
+  '@exemplarjs/canonical@0.2.0':
+    resolution: {integrity: sha512-y4DcKk0a05+Y5PtEGgFKy419mhoQFXP8SqcxAIWq0BnCSvmYRhJH18kXJp5ZgLYR/m3wFWnLtT1m6/8RSlXOsQ==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/catalog@0.2.0':
+    resolution: {integrity: sha512-5Ve6+MKinvF+S8J73PMFftDrIKQh5fa8GhD67h7xKzxzTcRFgaNu3ANbTvQdgI33VJN9l+3U/xGpmlpMHZQdjg==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/dom@0.2.0':
+    resolution: {integrity: sha512-JV50jQpf88EYNp/oJL7vxiD1feyEsnvYxfdEFx42duofwuWwvWx4hla5Qc7iLJgcB3yesK9JMarkaEB86heQkQ==}
+    peerDependencies:
+      '@exemplarjs/writer': 0.2.0
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/encodings-cjk@0.2.0':
+    resolution: {integrity: sha512-LxqRRsxoc3tFKCWnp0TflyaPyGFRDn6+kX4PUvrpqkmzBIfezczA3cNjIQYZoEmYy9990PQVD9AyLk2t6g9kXQ==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/sax@0.2.0':
+    resolution: {integrity: sha512-psgiTMUwd9miPNxkhyRARcVzawMh+RJiAq2orI2TT1cER7S4dlpxiToeKzDF8KUVcFF+6+zsAhc/0zXK1Gjl6Q==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/validation@0.2.0':
+    resolution: {integrity: sha512-jJ/VCHrr98E7P1btPw8LkvSKoVaI5lOMcYoqvTK2Etsga4xSYQQxtID35bXTM+Vyj+s7AIxAx8k6BkWv5OHYEw==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/writer@0.2.0':
+    resolution: {integrity: sha512-8RATUg1+lj9r5UIb96LyFFs3B6KQbkuha2VIIeRUS6Z3yySlml+0qYwleIocRFHAdl7Au9KndYGQkWo4bQHEYw==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/xdm@0.2.0':
+    resolution: {integrity: sha512-QNc7Z2daLrHLMTAN9CaEesBY0zFbEHQFLZxRaYqF9A0uFp32Qq+DAl2+5rMBaDZhkkNBdYdpIawuq0FJmbrqXg==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/xinclude@0.2.0':
+    resolution: {integrity: sha512-RBekY2brqHND9R58hp72dIzRIC3aRH5ExG3wIxfkesteDSwY9BrGolCYe6HAHuidftaC8F1ThWSJL7WatYLbhA==}
+    peerDependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/xml@0.2.0':
+    resolution: {integrity: sha512-PZdaKTt0DseLw7hUleswtLB5CcMiqubE9aEI9EFTNuPAhsM4Y1UO4pCg6GDrnCS/9P0C8P7MLFruKQFGyNqUlw==}
+
+  '@exemplarjs/xpath@0.2.0':
+    resolution: {integrity: sha512-vqPG5bEDmlSW42BqjEoy+13YcVnNbZ06UBhkdM9jsQt1t2R1r9hmuaraMmoriLco0R61zZBjgQJ5UfzYkgYpoQ==}
+    peerDependencies:
+      '@exemplarjs/writer': 0.2.0
+      '@exemplarjs/xdm': 0.2.0
+      '@exemplarjs/xml': 0.2.0
 
   '@fast-check/vitest@0.5.0':
     resolution: {integrity: sha512-Kgbj2smuq1P4OhGKuPATs5i2fAxNmGbJ/zSmTrzWhQSLUrHREbKWgv9WGbNUOXcx77q6joLVMmTygyXuwP2Bog==}
@@ -1732,8 +1788,8 @@ packages:
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
 
-  follow-redirects@1.16.1:
-    resolution: {integrity: sha512-FNvFGzoMLWmE6Yj9spb/zjd7yiNCHiAW9/Tg9CXrQ8wuu32HtlJOwWO11OJafl5FfY3DxTdQ0vj42zU1kvv5jg==}
+  follow-redirects@1.16.3:
+    resolution: {integrity: sha512-toOSoqN6d51Wjf1aOFJYcoVv1aND9rj/CwjLU0Vz40oDuSpWDayCeKe4JpL5NL0WdFvoOOCI3BRo69HahjbR1A==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -2980,6 +3036,51 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
+  '@exemplarjs/canonical@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/catalog@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/dom@0.2.0(@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/writer': 0.2.0(@exemplarjs/xml@0.2.0)
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/encodings-cjk@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/sax@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/validation@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/xdm@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/xinclude@0.2.0(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/xml': 0.2.0
+
+  '@exemplarjs/xml@0.2.0': {}
+
+  '@exemplarjs/xpath@0.2.0(@exemplarjs/writer@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xdm@0.2.0(@exemplarjs/xml@0.2.0))(@exemplarjs/xml@0.2.0)':
+    dependencies:
+      '@exemplarjs/writer': 0.2.0(@exemplarjs/xml@0.2.0)
+      '@exemplarjs/xdm': 0.2.0(@exemplarjs/xml@0.2.0)
+      '@exemplarjs/xml': 0.2.0
+
   '@fast-check/vitest@0.5.0(vitest@5.0.5)':
     dependencies:
       fast-check: 4.10.2
@@ -3479,7 +3580,7 @@ snapshots:
 
   axios@1.20.0(debug@4.4.3):
     dependencies:
-      follow-redirects: 1.16.1(debug@4.4.3)
+      follow-redirects: 1.16.3(debug@4.4.3)
       form-data: 4.0.6
       https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
@@ -3904,7 +4005,7 @@ snapshots:
 
   flatted@3.4.4: {}
 
-  follow-redirects@1.16.1(debug@4.4.3):
+  follow-redirects@1.16.3(debug@4.4.3):
     optionalDependencies:
       debug: 4.4.3
 
